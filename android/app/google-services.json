@@ -1,0 +1,68 @@
+{
+  "project_info": {
+    "project_number": "969071079065",
+    "firebase_url": "https://notemaker-280bd.firebaseio.com",
+    "project_id": "notemaker-280bd",
+    "storage_bucket": "notemaker-280bd.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:969071079065:android:e434efa74b6782a4",
+        "android_client_info": {
+          "package_name": "com.example.lierance.notemaker"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDF9waYRPPIoXPClg4ixNfOUag8aylBWLY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:969071079065:android:a2766fda48c535c0",
+        "android_client_info": {
+          "package_name": "com.notemaker.notemaker"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDF9waYRPPIoXPClg4ixNfOUag8aylBWLY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:969071079065:android:1b3c17a3bf7f1503bb1208",
+        "android_client_info": {
+          "package_name": "com.smatechgroup.tese"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDF9waYRPPIoXPClg4ixNfOUag8aylBWLY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
