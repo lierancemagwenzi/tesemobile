@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:mvc_pattern/mvc_pattern.dart';
 import 'package:smacredit/client/channels/empty_widget.dart';
@@ -161,7 +162,7 @@ class _ChannelCard extends StatelessWidget {
         children: [
           CircleAvatar(
             radius: 35,
-            backgroundImage: NetworkImage(channel.logoUrl ?? ""),
+            backgroundImage: CachedNetworkImageProvider(channel.logoUrl ?? ""),
             backgroundColor: Colors.grey[800],
             // backgroundImage: NetworkImage(channel.logoUrl ?? ""),
           ),
@@ -189,7 +190,7 @@ class _ChannelCard extends StatelessWidget {
       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       leading: CircleAvatar(
         radius: 25,
-        backgroundImage: NetworkImage(channel.logoUrl ?? ""),
+        backgroundImage: CachedNetworkImageProvider(channel.logoUrl ?? ""),
         backgroundColor: Colors.grey[800],
         // backgroundImage: NetworkImage(channel.logoUrl ?? ""),
       ),

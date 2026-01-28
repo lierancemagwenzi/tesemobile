@@ -1,7 +1,9 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:mvc_pattern/mvc_pattern.dart';
 import 'package:smacredit/client/channels/empty_widget.dart';
 import 'package:smacredit/client/controller/client_user_controller.dart';
+import 'package:smacredit/src/content-creator/models/channel_model.dart';
 import 'package:smacredit/src/utils/xhelper.dart';
 
 // --- DUMMY MODELS ---
@@ -45,8 +47,13 @@ class _MyLibraryWidgetState extends StateMVC<MyLibraryWidget> {
   void initState() {
     // TODO: implement initState
     super.initState();
+    getData();
+  }
 
+  getData() {
     _con.listenForPurchasedVideos();
+    _con.listenForLikedVideos();
+    _con.listenForWatchedVideos();
   }
 
   // Robust Network Image Helper with Error Placeholders
@@ -62,22 +69,49 @@ class _MyLibraryWidgetState extends StateMVC<MyLibraryWidget> {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          Image.network(
-            url,
-            width: width,
-            height: height,
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) => Container(
-              width: width,
-              height: height,
-              color: isDark ? const Color(0xFF1C1C1E) : Colors.grey.shade200,
-              child: Icon(
-                Icons.videocam_outlined,
-                color: isDark ? Colors.white10 : Colors.grey.shade300,
-                size: 30,
-              ),
-            ),
-          ),
+          1 == 1
+              ? CachedNetworkImage(
+                  imageUrl: url,
+                  fit: BoxFit.cover,
+                  width: width,
+                  height: height,
+                  // 1. Placeholder shown while downloading
+                  placeholder: (context, url) => Container(
+                    color: Colors.grey[900], // Matches Tese Navy
+                    child: const Center(
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Color(0xFF1B5E20),
+                      ),
+                    ),
+                  ),
+                  // 2. Error widget shown if the link is broken
+                  errorWidget: (context, url, error) => Container(
+                    color: Colors.grey[800],
+                    child: const Icon(
+                      Icons.broken_image,
+                      color: Colors.white24,
+                    ),
+                  ),
+                )
+              : Image.network(
+                  url,
+                  width: width,
+                  height: height,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    width: width,
+                    height: height,
+                    color: isDark
+                        ? const Color(0xFF1C1C1E)
+                        : Colors.grey.shade200,
+                    child: Icon(
+                      Icons.videocam_outlined,
+                      color: isDark ? Colors.white10 : Colors.grey.shade300,
+                      size: 30,
+                    ),
+                  ),
+                ),
           if (showPlay)
             Container(
               padding: const EdgeInsets.all(6),
@@ -106,6 +140,7 @@ class _MyLibraryWidgetState extends StateMVC<MyLibraryWidget> {
       appBar: AppBar(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
+        automaticallyImplyLeading: false,
         centerTitle: true,
 
         title: Text("Tese Africa"),
@@ -137,26 +172,26 @@ class _MyLibraryWidgetState extends StateMVC<MyLibraryWidget> {
             const SizedBox(height: 20),
 
             // _buildFilterRow(isDark),
-            // const SizedBox(height: 25),
-
-            // SECTION: CONTINUE WATCHING
-            // _sectionHeader(Icons.access_time, "Continue Watching"),
-            // _buildContinueWatchingItem(
-            //   "Complete Web Development 2024",
-            //   "TechMasterPro",
-            //   "12h 45m",
-            //   "65%",
-            //   "2 days ago",
-            // ),
-            // _buildContinueWatchingItem(
-            //   "Advanced Photography Guide",
-            //   "Sarah Mitchell",
-            //   "8h 30m",
-            //   "30%",
-            //   "5 week ago",
-            // ),
             const SizedBox(height: 25),
 
+            // SECTION: CONTINUE WATCHING
+            _sectionHeader(Icons.favorite, "Liked videos"),
+
+            if (_con.likedVideos.isNotEmpty)
+              ..._con.likedVideos.map(
+                (video) => _buildContinueWatchingItem(video),
+              )
+            else
+              TeseEmptyWidget(),
+            const SizedBox(height: 25),
+            _sectionHeader(Icons.visibility, "Recently watched"),
+            if (_con.watchedVideos.isNotEmpty)
+              ..._con.watchedVideos.map(
+                (video) => _buildContinueWatchingItem(video),
+              )
+            else
+              TeseEmptyWidget(),
+            const SizedBox(height: 25),
             // // SECTION: ALL PURCHASED VIDEOS (FEATURED)
             // const Text(
             //   "All Purchased Videos",
@@ -263,47 +298,52 @@ class _MyLibraryWidgetState extends StateMVC<MyLibraryWidget> {
     );
   }
 
-  Widget _buildContinueWatchingItem(
-    String title,
-    String creator,
-    String time,
-    String prog,
-    String date,
-  ) {
+  Widget _buildContinueWatchingItem(Video video) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 15),
-      child: Row(
-        children: [
-          _buildNetworkImage("https://invalid-url.com"),
-          const SizedBox(width: 15),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
+      child: InkWell(
+        onTap: () {
+          Navigator.pushNamed(
+            context,
+            '/Player',
+            arguments: {'video': video},
+          ).then((e) {
+            getData();
+          });
+        },
+        child: Row(
+          children: [
+            _buildNetworkImage(video.thumbnailUrl ?? ""),
+            const SizedBox(width: 15),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    video.title ?? "",
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
                   ),
-                ),
-                Text(
-                  creator,
-                  style: const TextStyle(color: Colors.grey, fontSize: 12),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  "$time  •  $prog complete",
-                  style: const TextStyle(color: Colors.grey, fontSize: 11),
-                ),
-                Text(
-                  date,
-                  style: const TextStyle(color: Colors.grey, fontSize: 11),
-                ),
-              ],
+                  Text(
+                    video.description ?? "",
+                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    UtilsHelper.formatLongDuration(video.durationSeconds ?? 0),
+                    style: const TextStyle(color: Colors.grey, fontSize: 11),
+                  ),
+                  // Text(
+                  //   date,
+                  //   style: const TextStyle(color: Colors.grey, fontSize: 11),
+                  // ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

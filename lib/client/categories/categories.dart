@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:mvc_pattern/mvc_pattern.dart';
 import 'package:smacredit/client/controller/client_user_controller.dart';
@@ -64,50 +65,77 @@ class _TeseCategoryExplorerState extends StateMVC<TeseCategoryExplorer> {
 
   // --- REUSABLE IMAGE LOADER & ERROR HANDLER ---
   Widget _buildNetworkImage(String url, {double? width, double? height}) {
-    return Image.network(
-      url,
-      width: width,
-      height: height,
-      fit: BoxFit.cover,
-      // 1. LOADING STATE
-      loadingBuilder: (context, child, loadingProgress) {
-        if (loadingProgress == null) return child; // Image is fully loaded
-        return Container(
-          width: width,
-          height: height,
-          color: Colors.grey[200], // Slight tint during load
-          child: Center(
-            child: CircularProgressIndicator(
-              value: loadingProgress.expectedTotalBytes != null
-                  ? loadingProgress.cumulativeBytesLoaded /
-                        loadingProgress.expectedTotalBytes!
-                  : null,
-              color: teseRed,
-              strokeWidth: 2,
-            ),
-          ),
-        );
-      },
-      // 2. ERROR STATE (Grey Background as requested)
-      errorBuilder: (context, error, stackTrace) {
-        return Container(
-          width: width,
-          height: height,
-          color: Colors.grey[300], // Grey background for errors
-          child: const Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.broken_image_outlined, color: Colors.grey, size: 30),
-              SizedBox(height: 4),
-              Text(
-                "Unavailable",
-                style: TextStyle(color: Colors.grey, fontSize: 10),
+    return 1 == 1
+        ? CachedNetworkImage(
+            imageUrl: url,
+            fit: BoxFit.cover,
+            width: width,
+            height: height,
+            // 1. Placeholder shown while downloading
+            placeholder: (context, url) => Container(
+              color: Colors.grey[900], // Matches Tese Navy
+              child: const Center(
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Color(0xFF1B5E20),
+                ),
               ),
-            ],
-          ),
-        );
-      },
-    );
+            ),
+            // 2. Error widget shown if the link is broken
+            errorWidget: (context, url, error) => Container(
+              color: Colors.grey[800],
+              child: const Icon(Icons.broken_image, color: Colors.white24),
+            ),
+          )
+        : Image.network(
+            url,
+            width: width,
+            height: height,
+            fit: BoxFit.cover,
+            // 1. LOADING STATE
+            loadingBuilder: (context, child, loadingProgress) {
+              if (loadingProgress == null)
+                return child; // Image is fully loaded
+              return Container(
+                width: width,
+                height: height,
+                color: Colors.grey[200], // Slight tint during load
+                child: Center(
+                  child: CircularProgressIndicator(
+                    value: loadingProgress.expectedTotalBytes != null
+                        ? loadingProgress.cumulativeBytesLoaded /
+                              loadingProgress.expectedTotalBytes!
+                        : null,
+                    color: teseRed,
+                    strokeWidth: 2,
+                  ),
+                ),
+              );
+            },
+            // 2. ERROR STATE (Grey Background as requested)
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                width: width,
+                height: height,
+                color: Colors.grey[300], // Grey background for errors
+                child: const Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.broken_image_outlined,
+                      color: Colors.grey,
+                      size: 30,
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      "Unavailable",
+                      style: TextStyle(color: Colors.grey, fontSize: 10),
+                    ),
+                  ],
+                ),
+              );
+            },
+          );
   }
 
   // --- UI BUILDING METHODS ---

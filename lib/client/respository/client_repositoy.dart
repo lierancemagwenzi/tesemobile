@@ -11,6 +11,7 @@ import 'package:global_configuration/global_configuration.dart';
 
 import 'package:http/http.dart' as http;
 import 'package:smacredit/client/models/media_response.dart';
+import 'package:smacredit/client/models/search_result.dart';
 import 'package:smacredit/client/payments/models/payment_response.dart';
 import 'package:smacredit/src/auth/models/UploadIDModel.dart';
 import 'package:smacredit/src/auth/repository/inteceptor.dart';
@@ -197,6 +198,31 @@ Future<Stream<Category>> get_categories() async {
       });
 }
 
+Future<Stream<Category>> get__dashboard_categories() async {
+  final String url =
+      '${GlobalConfiguration().getValue('api_base_url')}/dashboard-categories';
+  if (kDebugMode) {
+    print(url);
+  }
+  http.Request request = http.Request('get', Uri.parse(url));
+
+  if (currentuser.value.token != null) {
+    request.headers['Authorization'] = 'Bearer ${currentuser.value.token}';
+  }
+
+  final streamedRest = await client.send(request);
+
+  return streamedRest.stream
+      .transform(utf8.decoder)
+      .transform(json.decoder)
+      .map((data) => Helper.getData(data))
+      .expand((data) => (data as List))
+      .map((data) {
+        Category channel = Category.fromJson(data);
+        return channel;
+      });
+}
+
 Future<Stream<User>> get_creators() async {
   final String url =
       '${GlobalConfiguration().getValue('api_base_url')}/creators/get/all';
@@ -250,6 +276,56 @@ Future<Stream<User>> get_category_creators(int id) async {
 Future<Stream<Video>> get_purchased_videos() async {
   final String url =
       '${GlobalConfiguration().getValue('api_base_url')}/purchased-videos';
+  if (kDebugMode) {
+    print(url);
+  }
+  http.Request request = http.Request('get', Uri.parse(url));
+
+  if (currentuser.value.token != null) {
+    request.headers['Authorization'] = 'Bearer ${currentuser.value.token}';
+  }
+
+  final streamedRest = await client.send(request);
+
+  return streamedRest.stream
+      .transform(utf8.decoder)
+      .transform(json.decoder)
+      .map((data) => Helper.getData(data))
+      .expand((data) => (data as List))
+      .map((data) {
+        Video channel = Video.fromJson(data);
+        return channel;
+      });
+}
+
+Future<Stream<Video>> get_liked_videos() async {
+  final String url =
+      '${GlobalConfiguration().getValue('api_base_url')}/liked-videos';
+  if (kDebugMode) {
+    print(url);
+  }
+  http.Request request = http.Request('get', Uri.parse(url));
+
+  if (currentuser.value.token != null) {
+    request.headers['Authorization'] = 'Bearer ${currentuser.value.token}';
+  }
+
+  final streamedRest = await client.send(request);
+
+  return streamedRest.stream
+      .transform(utf8.decoder)
+      .transform(json.decoder)
+      .map((data) => Helper.getData(data))
+      .expand((data) => (data as List))
+      .map((data) {
+        Video channel = Video.fromJson(data);
+        return channel;
+      });
+}
+
+Future<Stream<Video>> get_watched_videos() async {
+  final String url =
+      '${GlobalConfiguration().getValue('api_base_url')}/watched-videos';
   if (kDebugMode) {
     print(url);
   }
@@ -470,17 +546,64 @@ Future<MediaResponse?> get_media(int id) async {
     final response = await client
         .get(
           Uri.parse(url),
-          headers: {
-            HttpHeaders.contentTypeHeader: 'application/json',
-            HttpHeaders.authorizationHeader:
-                'Bearer ${currentuser.value.token}',
-          },
+          headers: currentuser.value.user != null
+              ? {
+                  HttpHeaders.contentTypeHeader: 'application/json',
+                  HttpHeaders.authorizationHeader:
+                      'Bearer ${currentuser.value.token}',
+                }
+              : {
+                  HttpHeaders.contentTypeHeader: 'application/json',
+                  // HttpHeaders.authorizationHeader:
+                  //     'Bearer ${currentuser.value.token}',
+                },
         )
         .timeout(Duration(seconds: 60));
 
     print(response.body);
     if (response.statusCode == 200) {
       MediaResponse userModel = MediaResponse.fromJson(
+        json.decode(response.body),
+      );
+
+      return userModel;
+    } else {
+      return null;
+    }
+  } on TimeoutException catch (e) {
+    print(e.message);
+    return null;
+  } on SocketException catch (e) {
+    return null;
+  } on Error catch (e) {
+    print("error");
+    print(e.stackTrace);
+    return null;
+  }
+}
+
+Future<SearchResult?> client_search(Map map) async {
+  final String url =
+      '${GlobalConfiguration().getValue('api_base_url')}/client/search';
+
+  try {
+    final response = await client
+        .post(
+          Uri.parse(url),
+          headers: currentuser.value.token != null
+              ? {
+                  HttpHeaders.contentTypeHeader: 'application/json',
+                  HttpHeaders.authorizationHeader:
+                      'Bearer ${currentuser.value.token}',
+                }
+              : {HttpHeaders.contentTypeHeader: 'application/json'},
+          body: json.encode(map),
+        )
+        .timeout(Duration(seconds: 60));
+
+    print(response.body);
+    if (response.statusCode == 200) {
+      SearchResult userModel = SearchResult.fromJson(
         json.decode(response.body),
       );
 

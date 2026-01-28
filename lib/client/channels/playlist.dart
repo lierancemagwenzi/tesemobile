@@ -321,6 +321,18 @@ class _PlayListVideosWidgetState extends StateMVC<PlayListVideosWidget> {
                       ),
                     ],
                   ),
+                  if (video.accessType == 'paid') ...[
+                    SizedBox(height: 8),
+                    Text(
+                      "${video.currency ?? 'USD'} ${(video.price ?? 0).toStringAsFixed(2)}",
+                      style: TextStyle(
+                        color: Colors
+                            .white, // Note: This might be invisible on light theme now
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),

@@ -8,6 +8,7 @@ import 'package:smacredit/src/payments/controller/payment_controller.dart';
 import 'package:smacredit/src/payments/models/payment_link_model.dart';
 import 'package:smacredit/src/payments/models/transaction.dart';
 import 'package:smacredit/src/payments/widgets/payouts.dart';
+import 'package:smacredit/src/repositories/user_repository.dart';
 import 'package:smacredit/src/utils/data.dart';
 import 'package:smacredit/src/widgets/CustomOverlay.dart';
 
@@ -212,8 +213,10 @@ class _PaymentLinksWidgetState extends StateMVC<PaymentLinksWidget> {
           child: Column(
             children: [
               // 3. Create Payment Link Button
-              _buildCreatePaymentLinkButton(context),
-              const SizedBox(height: 10),
+              if (currentuser.value.user?.status == 'active') ...[
+                _buildCreatePaymentLinkButton(context),
+                const SizedBox(height: 10),
+              ],
 
               // 4. Transaction List
               Expanded(

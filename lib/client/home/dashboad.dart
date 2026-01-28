@@ -45,8 +45,8 @@ class _ClientDashboardWidgetState extends StateMVC<ClientDashboardWidget> {
         body: [
           ClientHomeWidget(),
 
-          DownloadsScreen(),
-          // SearchWidget(),
+          // DownloadsScreen(),
+          SearchWidget(),
           // LiveEventsWidget(),
           MyLibraryWidget(),
           ClientProfileScreen(),
@@ -79,7 +79,7 @@ class _ClientDashboardWidgetState extends StateMVC<ClientDashboardWidget> {
             ),
             IconButton(
               icon: Icon(
-                Icons.download_outlined,
+                Icons.search,
                 color: currentIndex == 1 ? brandGreen : Colors.grey,
               ),
               onPressed: () {

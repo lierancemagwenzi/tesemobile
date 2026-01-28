@@ -1,8 +1,8 @@
 {
   "base_url": "http://192.168.0.210:8003/storage/",
   "server_api_base_url": "http://178.63.147.134:8005/api",
-  "api_base_url": "https://32d0b26a1c46.ngrok-free.app/api",
-
-  "api_base_url": "http://dev.tese.africa:8005/api",
-  "api_base_url": "http://192.168.0.97:8005/api"
+  "api_base_url": "http://13.245.134.65:8005/api",
+ 
+  "api_base_url": "http://192.168.0.97:8005/api",
+  "api_base_url": "http://dev.tese.africa:8005/api"
 }

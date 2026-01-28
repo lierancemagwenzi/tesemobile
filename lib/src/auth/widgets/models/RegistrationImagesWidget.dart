@@ -287,23 +287,23 @@ class _RegistrationImagesWidgetState
                   },
                 ),
                 const SizedBox(height: 16),
-                CustomButtons.outlineButton(
-                  text: 'Passport',
-                  callback: () {
-                    Navigator.pop(context);
-                    Navigator.pushNamed(context, '/PassportPicker').then((
-                      value,
-                    ) {
-                      if (value != null) {
-                        UploadIdModel file = value as UploadIdModel;
-                        passport = file;
-                        type = 'passport';
-                        setState(() {});
-                      }
-                    });
-                    ;
-                  },
-                ),
+                // CustomButtons.outlineButton(
+                //   text: 'Passport',
+                //   callback: () {
+                //     Navigator.pop(context);
+                //     Navigator.pushNamed(context, '/PassportPicker').then((
+                //       value,
+                //     ) {
+                //       if (value != null) {
+                //         UploadIdModel file = value as UploadIdModel;
+                //         passport = file;
+                //         type = 'passport';
+                //         setState(() {});
+                //       }
+                //     });
+                //     ;
+                //   },
+                // ),
                 const SizedBox(height: 24),
               ],
             ),

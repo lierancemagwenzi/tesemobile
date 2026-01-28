@@ -29,6 +29,7 @@ import 'package:http_parser/http_parser.dart';
 import 'package:smacredit/src/auth/models/ExtractIDModel.dart';
 import 'package:smacredit/src/auth/models/UploadIDModel.dart';
 import 'package:smacredit/src/auth/models/VerifyOTPModel.dart';
+import 'package:smacredit/src/auth/repository/login_repository.dart';
 import 'package:smacredit/src/employment/models/CustomerEmployerModel.dart';
 import 'package:smacredit/src/employment/models/EmployerModel.dart';
 import 'package:smacredit/src/employment/repository/employer_repository.dart';
@@ -40,6 +41,7 @@ import 'package:smacredit/src/home/models/earnings_stats_model.dart';
 import 'package:smacredit/src/home/models/user_stats.dart';
 import 'package:smacredit/src/home/repository/dashboard_repository.dart';
 import 'package:smacredit/src/notifications/widgets/notifications.dart';
+import 'package:smacredit/src/profile/models/account_info.dart';
 import 'package:smacredit/src/repositories/user_repository.dart';
 import 'package:smacredit/src/repositories/user_repository.dart' as userRepo;
 import '../../helpers/Message.dart';
@@ -50,10 +52,34 @@ class HomeController extends ControllerMVC {
   String? selectedCurrency;
   AmountStatsModel? data;
   UserStatsModel? dashboardModel;
+    AccountInfo? accountInfo;
+
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
   FlutterLocalNotificationsPlugin? flutterLocalNotificationsPlugin;
   HomeController() {
     scaffoldKey = GlobalKey<ScaffoldState>();
+  }
+
+    void getAccountInfo() {
+    setState(() {
+      loading = true;
+    });
+    get_account_info({}).then((value) async {
+      if (value != null) {
+        setState(() {
+          accountInfo = value;
+          loading = false;
+        });
+      } else {
+        setState(() {
+          loading = false;
+        });
+        // CustomMessageHandler().showErrorSnakeBar(
+        //   scaffoldKey.currentContext!,
+        //   "Something went wrong.Try again",
+        // );
+      }
+    });
   }
 
   local() async {

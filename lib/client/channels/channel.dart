@@ -1,3 +1,5 @@
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:mvc_pattern/mvc_pattern.dart';
 import 'package:smacredit/client/channels/empty_widget.dart';
@@ -7,6 +9,8 @@ import 'package:smacredit/client/controller/client_user_controller.dart';
 import 'package:smacredit/client/payments/models/payment.dart';
 import 'package:smacredit/client/payments/models/payment_response.dart';
 import 'package:smacredit/client/payments/widgets/payment_form.dart';
+import 'package:smacredit/client/payments/widgets/payment_widget.dart';
+import 'package:smacredit/client/payments/widgets/qr_code_payment.dart';
 import 'package:smacredit/src/content-creator/models/channel_model.dart';
 import 'package:smacredit/src/helpers/Message.dart';
 import 'package:smacredit/src/repositories/user_repository.dart';
@@ -216,21 +220,24 @@ class _ClientChannelPlaylistsWidgetState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          "Channel",
-          style: TextStyle(
-            color: Colors
-                .white, // Note: This might be invisible on light theme now
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
+        if (_con.channel?.subscriptionEnabled == true)
+          Text(
+            "${_con.channel?.subscriptionCurrency ?? 'USD'} ${(_con.channel?.subscriptionPrice ?? 0).toStringAsFixed(2)}",
+            style: TextStyle(
+              color: Colors
+                  .white, // Note: This might be invisible on light theme now
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
           ),
-        ),
         const SizedBox(height: 15),
         Row(
           children: [
             CircleAvatar(
               radius: 20,
-              backgroundImage: NetworkImage(_con.channel?.logoUrl ?? ""),
+              backgroundImage: CachedNetworkImageProvider(
+                _con.channel?.logoUrl ?? "",
+              ),
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -289,35 +296,32 @@ class _ClientChannelPlaylistsWidgetState
   }
 
   Widget _buildSubscribeButton(Channel channel) {
-    return InkWell(
-      onTap: () {
-        if (channel.shouldShowButton['status'] == 'not_subscribed') {
-          _showPurchaseOptions(channel);
-        }
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: channel.shouldShowButton['positive'] == true
-                ? [Colors.green, Colors.green]
-                : [Color(0xFFFF416C), Color(0xFFFF4B2B)],
-          ),
-          borderRadius: BorderRadius.circular(20),
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: channel.shouldShowButton['positive'] == true
+              ? [Colors.green, Colors.green]
+              : [Color(0xFFFF416C), Color(0xFFFF4B2B)],
         ),
-        child: ElevatedButton(
-          onPressed: () {},
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.transparent,
-            shadowColor: Colors.transparent,
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: ElevatedButton(
+        onPressed: () {
+          if (channel.shouldShowButton['status'] == 'not_subscribed') {
+            _showPurchaseOptions(channel);
+          }
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
           ),
-          child: Text(
-            channel.shouldShowButton['message'],
-            style: TextStyle(color: Colors.white),
-          ),
+        ),
+        child: Text(
+          channel.shouldShowButton['message'],
+          style: TextStyle(color: Colors.white),
         ),
       ),
     );
@@ -445,24 +449,94 @@ class _ClientChannelPlaylistsWidgetState
   }) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(radius),
-      child: Image.network(
-        url,
-        width: width,
-        height: height,
-        fit: BoxFit.cover,
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) return child;
-          return _ShimmerBox(
-            width: width,
-            height: height,
-            controller: _shimmerController,
-          );
-        },
+      child: 1 == 1
+          ? CachedNetworkImage(
+              imageUrl: url,
+              width: width,
+              height: height,
+              fit: BoxFit.cover,
+              // 1. Placeholder shown while downloading
+              placeholder: (context, url) => Container(
+                color: Colors.grey[900], // Matches Tese Navy
+                child: const Center(
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Color(0xFF1B5E20),
+                  ),
+                ),
+              ),
+              // 2. Error widget shown if the link is broken
+              errorWidget: (context, url, error) => Container(
+                color: Colors.grey[800],
+                child: const Icon(Icons.broken_image, color: Colors.white24),
+              ),
+            )
+          : Image.network(
+              url,
+              width: width,
+              height: height,
+              fit: BoxFit.cover,
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) return child;
+                return _ShimmerBox(
+                  width: width,
+                  height: height,
+                  controller: _shimmerController,
+                );
+              },
 
-        errorBuilder: (context, error, stackTrace) =>
-            Container(width: width, height: height, color: Colors.grey[50]),
-      ),
+              errorBuilder: (context, error, stackTrace) => Container(
+                width: width,
+                height: height,
+                color: Colors.grey[50],
+              ),
+            ),
     );
+  }
+
+  handleWebForm(PaymentResponseWrapper payment) {
+    if (kDebugMode) {
+      print('got_here');
+      print(
+        payment.response?.paymentInitiationResponse?.paymentRedirectUrl ?? '',
+      );
+    }
+    Navigator.push(
+      context,
+      MaterialPageRoute<void>(
+        builder: (context) => TesePaymentWebView(
+          initialUrl:
+              payment.response?.paymentInitiationResponse?.paymentRedirectUrl ??
+              '',
+          successUrl: '',
+          onPaymentSuccess: () {},
+        ),
+      ),
+    ).then((v) {
+      _con.listenForChannel(widget.channel.id);
+    });
+  }
+
+  handleQRCode(PaymentResponseWrapper payment) {
+    if (kDebugMode) {
+      print('got_here');
+      print(
+        payment.response?.paymentInitiationResponse?.paymentRedirectUrl ?? '',
+      );
+    }
+    Navigator.push(
+      context,
+      MaterialPageRoute<void>(
+        builder: (context) => TesePaymentQR(
+          paymentData:
+              payment.response?.paymentInitiationResponse?.paymentToken ?? '',
+          amount:
+              '${payment.purchase?.currency ?? ''}${payment.purchase?.amount?.toStringAsFixed(2) ?? '0.00'}',
+        ),
+      ),
+    ).then((v) {
+      _con.listenForChannel(widget.channel.id);
+    });
   }
 
   void _showPurchaseOptions(Channel video) async {
@@ -483,7 +557,7 @@ class _ClientChannelPlaylistsWidgetState
       }
 
       Map map = {
-        "wallet": "Visa",
+        "wallet": result.method,
         "amount": video.subscriptionPrice ?? 1,
         "currency": "USD",
         "paymentDescription": "Channel  subscription payment",
@@ -513,6 +587,10 @@ class _ClientChannelPlaylistsWidgetState
           ).then((e) {
             _con.listenForChannel(widget.channel.id);
           });
+        } else if (result.method.toLowerCase() == 'zimswitch') {
+          handleWebForm(res);
+        } else if (result.method.toLowerCase() == 'innbucks') {
+          handleQRCode(res);
         }
       } else {
         CustomMessageHandler().showErrorSnakeBar(

@@ -29,6 +29,7 @@ import 'package:smacredit/src/addresses/SignatureWidget.dart';
 import 'package:smacredit/src/addresses/models/DocumentTypeModel.dart';
 import 'package:smacredit/src/auth/widgets/landing_screen.dart';
 import 'package:smacredit/src/auth/widgets/models/CheckEmailWidget.dart';
+import 'package:smacredit/src/auth/widgets/models/FirstWidget.dart';
 import 'package:smacredit/src/auth/widgets/models/ForgotPasswordWidget.dart';
 import 'package:smacredit/src/auth/widgets/models/IDDocumentPickerWidget.dart';
 import 'package:smacredit/src/auth/widgets/models/OTPWidget.dart';
@@ -253,7 +254,12 @@ class RouteGenerator {
       //             currentuser.value.user?.isClient == true
       //         ? ClientDashboardWidget()
       //         : HomeWidget(index: args != null ? args as int : null),
+      // );
+      // case '/Dashboard':
+      //   return CupertinoPageRoute(
+      //     builder: (_) => HomeWidget(index: args != null ? args as int : null),
       //   );
+
       case '/Dashboard':
         return CupertinoPageRoute(builder: (_) => ClientDashboardWidget());
       case '/CreatePaymentLink':

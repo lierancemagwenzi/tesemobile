@@ -56,7 +56,7 @@ Future<int?> deletenotification(var body) async {
     if (kDebugMode) {
       print(response.body);
     }
-    if (response.statusCode == 201) {
+    if (response.statusCode == 200) {
       return 1;
     } else {
       return null;

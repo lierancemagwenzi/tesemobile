@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:mvc_pattern/mvc_pattern.dart';
 import 'package:smacredit/client/channels/empty_widget.dart';
@@ -147,7 +148,7 @@ class _CreatorCard extends StatelessWidget {
           CircleAvatar(
             radius: 40,
             backgroundColor: Colors.grey,
-            backgroundImage: NetworkImage(creator.selfie ?? ""),
+            backgroundImage: CachedNetworkImageProvider(creator.selfie ?? ""),
           ),
           const SizedBox(height: 12),
           Text(

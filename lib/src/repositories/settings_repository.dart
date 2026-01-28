@@ -14,7 +14,7 @@ import '../models/Setting.dart';
 
 ValueNotifier<Setting> setting = ValueNotifier(Setting());
 
-ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.dark);
+ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
 
 final navigatorKey = GlobalKey<NavigatorState>();
 

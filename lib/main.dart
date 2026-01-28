@@ -42,15 +42,15 @@ await FlutterDownloader.initialize(
         ? FirebaseOptions(
             apiKey: 'AIzaSyDF9waYRPPIoXPClg4ixNfOUag8aylBWLY',
             appId: '1:969071079065:android:1b3c17a3bf7f1503bb1208',
-            messagingSenderId: '969071079065',
-            projectId: 'notemaker-280bd',
+            messagingSenderId: '663952460068',
+            projectId: 'tese-eba00',
           )
         : FirebaseOptions(
-            apiKey: 'AIzaSyAFyzJO2yc6-Ynli_VepswYit80-nq8KE0',
-            appId: '1:969071079065:ios:1037f1f0f253668abb1208',
-            messagingSenderId: '969071079065',
-            projectId: 'notemaker-280bd',
-            iosBundleId: 'com.smatechgoup.creatorpay.test',
+            apiKey: 'AIzaSyBROAsynXBIQd71vbnKnIa5aMxP1i-dfis',
+            appId: '1:663952460068:ios:6d56a137a520e9311a4bb1',
+            messagingSenderId: '663952460068',
+            projectId: 'tese-eba00',
+            iosBundleId: 'com.smatechgoup.tese',
           ),
   );
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);

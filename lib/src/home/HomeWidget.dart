@@ -81,8 +81,6 @@ class _HomeWidgetState extends StateMVC<HomeWidget> {
       activeIndex = widget.index ?? 0;
     }
     // _con.listenForProfileInfo();
-
-   
   }
 
   @override
@@ -114,12 +112,12 @@ class _HomeWidgetState extends StateMVC<HomeWidget> {
             },
           ),
 
-          ChannelListScreen(
+          // ChannelListScreen(
 
-               onPop: () {
-              _setHome();
-            },
-          ),
+          //      onPop: () {
+          //     _setHome();
+          //   },
+          // ),
           ProfileScreen(
             onPop: () {
               _setHome();
@@ -163,10 +161,10 @@ class _HomeWidgetState extends StateMVC<HomeWidget> {
             icon: Icon(Icons.credit_card),
             label: 'Payments',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.play_arrow),
-            label: 'Content',
-          ),
+          // BottomNavigationBarItem(
+          //   icon: Icon(Icons.play_arrow),
+          //   label: 'Content',
+          // ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),
             label: 'Profile',

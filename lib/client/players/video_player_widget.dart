@@ -1,5 +1,7 @@
 import 'package:better_player_plus/better_player_plus.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:mvc_pattern/mvc_pattern.dart';
@@ -11,6 +13,8 @@ import 'package:smacredit/client/models/media_response.dart';
 import 'package:smacredit/client/payments/models/payment.dart';
 import 'package:smacredit/client/payments/models/payment_response.dart';
 import 'package:smacredit/client/payments/widgets/payment_form.dart';
+import 'package:smacredit/client/payments/widgets/payment_widget.dart';
+import 'package:smacredit/client/payments/widgets/qr_code_payment.dart';
 import 'package:smacredit/client/players/media_loader.dart';
 import 'package:smacredit/client/players/premium_widget.dart';
 import 'package:smacredit/client/services/comment_like.dart';
@@ -175,7 +179,7 @@ class _TeseVideoPlayerWidgetState extends StateMVC<TeseVideoPlayerWidget> {
     _betterPlayerController = BetterPlayerController(
       BetterPlayerConfiguration(
         aspectRatio: 16 / 9,
-        autoPlay: false,
+        autoPlay: true,
         fit: BoxFit.contain,
         controlsConfiguration: controlsConfiguration,
       ),
@@ -209,7 +213,7 @@ class _TeseVideoPlayerWidgetState extends StateMVC<TeseVideoPlayerWidget> {
       }
 
       Map map = {
-        "wallet": "Visa",
+        "wallet": result.method,
         "amount": video.price ?? 1,
         "currency": "USD",
         "paymentDescription": "Video Purchase payment",
@@ -239,6 +243,10 @@ class _TeseVideoPlayerWidgetState extends StateMVC<TeseVideoPlayerWidget> {
           ).then((e) {
             getMedia();
           });
+        } else if (result.method.toLowerCase() == 'zimswitch') {
+          handleWebForm(res, isChannel: false);
+        } else if (result.method.toLowerCase() == 'innbucks') {
+          handleQRCode(res, isChannel: false);
         }
       } else {
         CustomMessageHandler().showErrorSnakeBar(
@@ -1024,7 +1032,9 @@ class _TeseVideoPlayerWidgetState extends StateMVC<TeseVideoPlayerWidget> {
         CircleAvatar(
           radius: 20,
           backgroundColor: Colors.grey,
-          backgroundImage: NetworkImage(_con.channel?.logoUrl ?? ""),
+          backgroundImage: CachedNetworkImageProvider(
+            _con.channel?.logoUrl ?? "",
+          ),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -1081,6 +1091,13 @@ class _TeseVideoPlayerWidgetState extends StateMVC<TeseVideoPlayerWidget> {
                     decoration: BoxDecoration(
                       color: isDark ? Colors.white10 : Colors.grey.shade200,
                       borderRadius: BorderRadius.circular(8),
+
+                      image: DecorationImage(
+                        image: CachedNetworkImageProvider(
+                          video.thumbnailUrl ?? "",
+                        ),
+                        fit: BoxFit.cover,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -1108,6 +1125,59 @@ class _TeseVideoPlayerWidgetState extends StateMVC<TeseVideoPlayerWidget> {
           );
   }
 
+  handleWebForm(PaymentResponseWrapper payment, {bool isChannel = true}) {
+    if (kDebugMode) {
+      print('got_here');
+      print(
+        payment.response?.paymentInitiationResponse?.paymentRedirectUrl ?? '',
+      );
+    }
+    Navigator.push(
+      context,
+      MaterialPageRoute<void>(
+        builder: (context) => TesePaymentWebView(
+          initialUrl:
+              payment.response?.paymentInitiationResponse?.paymentRedirectUrl ??
+              '',
+          successUrl: '',
+          onPaymentSuccess: () {},
+        ),
+      ),
+    ).then((v) {
+      if (isChannel) {
+        _con.listenForChannel(widget.video.channelId ?? 0);
+      } else {
+        getMedia();
+      }
+    });
+  }
+
+  handleQRCode(PaymentResponseWrapper payment, {bool isChannel = true}) {
+    if (kDebugMode) {
+      print('got_here');
+      print(
+        payment.response?.paymentInitiationResponse?.paymentRedirectUrl ?? '',
+      );
+    }
+    Navigator.push(
+      context,
+      MaterialPageRoute<void>(
+        builder: (context) => TesePaymentQR(
+          paymentData:
+              payment.response?.paymentInitiationResponse?.paymentToken ?? '',
+          amount:
+              '${payment.purchase?.currency ?? ''}${payment.purchase?.amount?.toStringAsFixed(2) ?? '0.00'}',
+        ),
+      ),
+    ).then((v) {
+      if (isChannel) {
+        _con.listenForChannel(widget.video.channelId ?? 0);
+      } else {
+        getMedia();
+      }
+    });
+  }
+
   void _showPurchaseOptions(Channel video) async {
     final PaymentSelection? result =
         await showModalBottomSheet<PaymentSelection>(
@@ -1126,7 +1196,7 @@ class _TeseVideoPlayerWidgetState extends StateMVC<TeseVideoPlayerWidget> {
       }
 
       Map map = {
-        "wallet": "Visa",
+        "wallet": result.method,
         "amount": video.subscriptionPrice ?? 1,
         "currency": "USD",
         "paymentDescription": "Channel  subscription payment",
@@ -1156,6 +1226,10 @@ class _TeseVideoPlayerWidgetState extends StateMVC<TeseVideoPlayerWidget> {
           ).then((e) {
             _con.listenForChannel(widget.video.channelId ?? 0);
           });
+        } else if (result.method.toLowerCase() == 'zimswitch') {
+          handleWebForm(res);
+        } else if (result.method.toLowerCase() == 'innbucks') {
+          handleQRCode(res);
         }
       } else {
         CustomMessageHandler().showErrorSnakeBar(

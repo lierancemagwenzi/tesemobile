@@ -93,7 +93,7 @@ class PaymentInitiationResponse {
   final dynamic
   paymentTokenExpiry; // Using dynamic for null values that might change type
   final String? paymentResponseMessage;
-
+final String? paymentToken;
   PaymentInitiationResponse({
     this.status,
     this.paymentId,
@@ -101,7 +101,7 @@ class PaymentInitiationResponse {
     this.paymentCode,
     this.paymentApplicationID,
     this.paymentTokenExpiry,
-    this.paymentResponseMessage,
+    this.paymentResponseMessage,this.paymentToken
   });
 
   factory PaymentInitiationResponse.fromJson(Map<String, dynamic> json) {
@@ -110,6 +110,7 @@ class PaymentInitiationResponse {
       paymentId: json['paymentId'],
       paymentRedirectUrl: json['paymentRedirectUrl'],
       paymentCode: json['paymentCode'],
+       paymentToken: json['paymentToken'],
       paymentApplicationID: json['paymentApplicationID'],
       paymentTokenExpiry: json['paymentTokenExpiry'],
       paymentResponseMessage: json['paymentResponseMessage'],

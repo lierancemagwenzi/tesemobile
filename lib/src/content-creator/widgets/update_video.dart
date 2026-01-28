@@ -1,6 +1,8 @@
 import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mvc_pattern/mvc_pattern.dart';
 import 'package:path_provider/path_provider.dart';
@@ -50,8 +52,58 @@ class _UpdateVideoScreenState extends StateMVC<UpdateVideoScreen> {
   int durationInSeconds = 0;
   int sizeInBytes = 0;
   final ImagePicker _picker = ImagePicker();
+  File? _logoImage;
 
   bool visibility = false;
+
+  Future<void> _pickFile() async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+    );
+    bool isLogo = true;
+    final Color brandGreen = const Color(0xFF00D285);
+    if (result != null) {
+      File file = File(result.files.single.path!);
+      CroppedFile? croppedFile = await ImageCropper().cropImage(
+        sourcePath: file.path,
+        aspectRatio: CropAspectRatio(ratioX: 1, ratioY: 1),
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: 'Crop Image',
+            toolbarColor: brandGreen,
+            toolbarWidgetColor: Colors.white,
+            activeControlsWidgetColor: brandGreen,
+            initAspectRatio: CropAspectRatioPreset.original,
+            lockAspectRatio: false,
+            aspectRatioPresets: [
+              CropAspectRatioPreset.original,
+              CropAspectRatioPreset.square,
+              CropAspectRatioPreset.ratio4x3,
+            ],
+          ),
+          IOSUiSettings(
+            title: 'Crop Image',
+
+            aspectRatioPresets: [
+              CropAspectRatioPreset.original,
+              CropAspectRatioPreset.square,
+              CropAspectRatioPreset.ratio4x3,
+            ],
+          ),
+        ],
+      );
+
+      if (croppedFile != null) {
+        if (isLogo) {
+          setState(() {
+            _logoImage = File(croppedFile.path);
+
+            _con.updateVideoThumb(_logoImage!, widget.video.id);
+          });
+        }
+      }
+    }
+  }
 
   @override
   void initState() {
@@ -430,7 +482,10 @@ class _UpdateVideoScreenState extends StateMVC<UpdateVideoScreen> {
                     ), // Icon on the left
                     value: visibility, // A boolean variable
                     onChanged: (bool value) async {
-                      Map map = {"visibility": value, "id": widget.video.id};
+                      Map map = {
+                        "visibility": value ? "VISIBLE" : "NOT_VISIBLE",
+                        "id": widget.video.id,
+                      };
                       Video? channel = await _con.updateVideoVisibility(map);
                       if (channel != null) {
                         // ignore: use_build_context_synchronously
@@ -446,6 +501,39 @@ class _UpdateVideoScreenState extends StateMVC<UpdateVideoScreen> {
                         );
                       }
                     },
+                  ),
+
+                  Divider(color: Colors.blueGrey),
+
+                  ListTile(
+                    leading: Container(
+                      height: 50,
+                      width: 50,
+                      decoration: BoxDecoration(
+                        image: DecorationImage(
+                          image: _con.profileImage != null && _logoImage != null
+                              ? FileImage(_logoImage!)
+                              : NetworkImage(widget.video.thumbnailUrl ?? ""),
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                    onTap: () {
+                      _pickFile();
+                    },
+                    title: Text(
+                      "Update Video thumbnail",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        // fontSize: 12.0,
+                      ),
+                    ),
+
+                    subtitle: Text(
+                      _logoImage != null
+                          ? "Thumbanail picked"
+                          : "Click to update",
+                    ),
                   ),
 
                   Divider(color: Colors.blueGrey),

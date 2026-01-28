@@ -76,8 +76,8 @@ class _CreatePaymentLinkScreenState extends StateMVC<CreatePaymentLinkScreen> {
 
   // Dropdown/Selection Variables
   String? _selectedType = 'ONCE_OFF_FIXED';
-  DateTime? _startDate = DateTime.parse('2025-11-19');
-  DateTime? _endDate = DateTime.parse('2025-12-19');
+  DateTime? _startDate = DateTime.now();
+  DateTime? _endDate = DateTime.now().add(Duration(days: 61));
   bool _allowOtherCurrencies = true;
   File? _imageFile;
   // Mock Dropdown Lists
@@ -176,7 +176,7 @@ class _CreatePaymentLinkScreenState extends StateMVC<CreatePaymentLinkScreen> {
       initialDate: isStart
           ? _startDate ?? DateTime.now()
           : _endDate ?? DateTime.now(),
-      firstDate: DateTime.now(),
+      firstDate: _startDate ?? DateTime.now(),
       lastDate: DateTime.now().add(Duration(days: (365 * 100))),
     );
     if (picked != null) {

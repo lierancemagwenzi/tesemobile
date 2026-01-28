@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mvc_pattern/mvc_pattern.dart';
@@ -7,6 +8,8 @@ import 'package:smacredit/client/controller/client_user_controller.dart';
 import 'package:smacredit/client/payments/models/payment.dart';
 import 'package:smacredit/client/payments/models/payment_response.dart';
 import 'package:smacredit/client/payments/widgets/payment_form.dart';
+import 'package:smacredit/client/payments/widgets/payment_widget.dart';
+import 'package:smacredit/client/payments/widgets/qr_code_payment.dart';
 import 'package:smacredit/src/content-creator/models/channel_model.dart';
 import 'package:smacredit/src/helpers/Message.dart';
 import 'package:smacredit/src/models/UserModel.dart';
@@ -449,6 +452,51 @@ class _CreatorProfileScreenState extends StateMVC<CreatorProfileScreen> {
     );
   }
 
+  handleWebForm(PaymentResponseWrapper payment) {
+    if (kDebugMode) {
+      print('got_here');
+      print(
+        payment.response?.paymentInitiationResponse?.paymentRedirectUrl ?? '',
+      );
+    }
+    Navigator.push(
+      context,
+      MaterialPageRoute<void>(
+        builder: (context) => TesePaymentWebView(
+          initialUrl:
+              payment.response?.paymentInitiationResponse?.paymentRedirectUrl ??
+              '',
+          successUrl: '',
+          onPaymentSuccess: () {},
+        ),
+      ),
+    ).then((v) {
+      _con.listenForCreatorChannels(widget.user.id ?? 0);
+    });
+  }
+
+  handleQRCode(PaymentResponseWrapper payment) {
+    if (kDebugMode) {
+      print('got_here');
+      print(
+        payment.response?.paymentInitiationResponse?.paymentRedirectUrl ?? '',
+      );
+    }
+    Navigator.push(
+      context,
+      MaterialPageRoute<void>(
+        builder: (context) => TesePaymentQR(
+          paymentData:
+              payment.response?.paymentInitiationResponse?.paymentToken ?? '',
+          amount:
+              '${payment.purchase?.currency ?? ''}${payment.purchase?.amount?.toStringAsFixed(2) ?? '0.00'}',
+        ),
+      ),
+    ).then((v) {
+      _con.listenForCreatorChannels(widget.user.id ?? 0);
+    });
+  }
+
   void _showPurchaseOptions(Channel video) async {
     final PaymentSelection? result =
         await showModalBottomSheet<PaymentSelection>(
@@ -461,13 +509,17 @@ class _CreatorProfileScreenState extends StateMVC<CreatorProfileScreen> {
         );
 
     if (result != null) {
-      print("Selected: ${result.method}");
+      if (kDebugMode) {
+        print("Selected: ${result.method}");
+      }
       if (result.ecoCashNumber != null) {
-        print("EcoCash Number: ${result.ecoCashNumber}");
+        if (kDebugMode) {
+          print("EcoCash Number: ${result.ecoCashNumber}");
+        }
       }
 
       Map map = {
-        "wallet": "Visa",
+        "wallet": result.method,
         "amount": video.subscriptionPrice ?? 1,
         "currency": "USD",
         "paymentDescription": "Channel  subscription payment",
@@ -497,6 +549,10 @@ class _CreatorProfileScreenState extends StateMVC<CreatorProfileScreen> {
           ).then((e) {
             _con.listenForCreatorChannels(widget.user.id ?? 0);
           });
+        } else if (result.method.toLowerCase() == 'zimswitch') {
+          handleWebForm(res);
+        } else if (result.method.toLowerCase() == 'innbucks') {
+          handleQRCode(res);
         }
       } else {
         CustomMessageHandler().showErrorSnakeBar(

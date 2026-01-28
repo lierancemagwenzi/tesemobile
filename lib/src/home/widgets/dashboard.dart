@@ -8,6 +8,7 @@ import 'package:smacredit/src/home/models/user_stats.dart';
 import 'package:smacredit/src/models/constants.dart';
 import 'package:smacredit/src/payments/models/transaction_model.dart';
 import 'package:smacredit/src/payments/widgets/transactions.dart';
+import 'package:smacredit/src/profile/models/account_info.dart';
 import 'package:smacredit/src/repositories/user_repository.dart';
 import 'package:badges/badges.dart' as badges;
 import 'package:smacredit/src/widgets/CustomOverlay.dart';
@@ -245,6 +246,7 @@ class _DashboardState extends StateMVC<Dashboard> {
     super.initState();
     _con.listenForDashboardInfo();
 
+    _con.getAccountInfo();
     Future.delayed(Duration(seconds: 1)).then((value) {
       _con.init(context);
       _con.local();
@@ -273,7 +275,11 @@ class _DashboardState extends StateMVC<Dashboard> {
                 // 1. Custom Header (Time, Notification, Profile)
                 _buildHeader(context),
                 const SizedBox(height: 24),
-
+                if (currentuser.value.user?.status?.toLowerCase() != 'active')
+                  _buildRestrictionNotice(
+                    context,
+                    currentuser.value.user?.status?.toLowerCase() ?? 'unknown',
+                  ),
                 Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: DropdownButton<AmountStatsModel>(
@@ -412,6 +418,10 @@ class _DashboardState extends StateMVC<Dashboard> {
                         totalBalance: e.amount,
                         currencySymbol: e.currency,
                         priceModel: e,
+                        voidCallback: () {
+                          _con.getAccountInfo();
+                        },
+                        accountInfo: _con.accountInfo,
                       ),
                     ),
                   )
@@ -421,15 +431,22 @@ class _DashboardState extends StateMVC<Dashboard> {
                     child: BalanceCard(
                       totalBalance: 0.0,
                       currencySymbol: 'USD',
+                      voidCallback: () {
+                        _con.getAccountInfo();
+                      },
                       priceModel: PriceModel(amount: 0, currency: '\$'),
+                      accountInfo: _con.accountInfo,
                     ),
                   ),
 
                 const SizedBox(height: 30),
 
                 // 6. Create Payment Link Button
-                _buildPaymentLinkButton(context),
-                const SizedBox(height: 30),
+                if (currentuser.value.user?.status?.toLowerCase() ==
+                    'active') ...[
+                  _buildPaymentLinkButton(context),
+                  const SizedBox(height: 30),
+                ],
 
                 if (_con.dashboardModel?.transactions?.isNotEmpty == true) ...[
                   Padding(
@@ -479,6 +496,54 @@ class _DashboardState extends StateMVC<Dashboard> {
         ),
         // 7. Bottom Navigation Bar
         // bottomNavigationBar: _buildBottomNavBar(),
+      ),
+    );
+  }
+
+  Widget _buildRestrictionNotice(BuildContext context, String? status) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        // Using Tese Dark Surface color
+        color: isDark
+            ? const Color(0xFF161B22)
+            : Colors.amber.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.amber.withOpacity(0.5), width: 1),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.info_outline_rounded, color: Colors.amber, size: 24),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Account Restricted",
+                  style: TextStyle(
+                    color: isDark ? Colors.white : Colors.black87,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  "You currently cannot create payment links or make withdrawals. Your account is in $status status.",
+                  style: TextStyle(
+                    color: isDark ? Colors.white70 : Colors.black54,
+                    fontSize: 13,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -815,10 +880,14 @@ class BalanceCard extends StatelessWidget {
   final double totalBalance;
   final PriceModel priceModel;
   final String currencySymbol;
+  final AccountInfo? accountInfo;
 
+  final VoidCallback voidCallback;
   const BalanceCard({
     super.key,
     required this.totalBalance,
+    this.accountInfo,
+    required this.voidCallback,
     required this.priceModel,
     this.currencySymbol = '\$', // Default to dollar sign
   });
@@ -838,6 +907,7 @@ class BalanceCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16.0),
           boxShadow: [
             BoxShadow(
+              // ignore: deprecated_member_use
               color: Colors.black.withOpacity(0.3),
               blurRadius: 10,
               offset: const Offset(0, 4),
@@ -872,55 +942,168 @@ class BalanceCard extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(height: 30),
-
             // --- 3. Bottom Row: Percentage/Change and Button ---
-            totalBalance > 0
-                ? Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // Left side: 7.0% ($20)
+            if (totalBalance > 0 &&
+                currentuser.value.user?.status?.toLowerCase() == 'active') ...[
+              const SizedBox(height: 30),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Left side: 7.0% ($20)
 
-                      // Right side: Add Funds Button
-                      SizedBox(
-                        height: 36, // Match the height from the image
-                        child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.pushNamed(
-                              context,
-                              '/RequestPayout',
-                              arguments: priceModel,
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            // White background, rounded corners
-                            backgroundColor: Colors.white,
-                            foregroundColor: const Color(
-                              0xFF193275,
-                            ), // Text color is the card color
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20.0),
-                            ),
-                            elevation: 0,
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
-                          ),
-                          child: const Text(
-                            'Request Payout',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                  // Right side: Add Funds Button
+                  SizedBox(
+                    height: 36, // Match the height from the image
+                    child: ElevatedButton(
+                      onPressed: () {
+                        if (accountInfo?.hasBank == true) {
+                          Navigator.pushNamed(
+                            context,
+                            '/RequestPayout',
+                            arguments: priceModel,
+                          );
+                        } else {
+                          showRestrictionDialog(context);
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        // White background, rounded corners
+                        backgroundColor: Colors.white,
+                        foregroundColor: const Color(
+                          0xFF193275,
+                        ), // Text color is the card color
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20.0),
+                        ),
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                      ),
+                      child: const Text(
+                        'Request Payout',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                    ],
-                  )
-                : SizedBox(height: 0, width: 0),
+                    ),
+                  ),
+                ],
+              ),
+            ] else
+              SizedBox(height: 0, width: 0),
 
             // --- 3. Bottom Row: Percentage/Change and Button ---
           ],
         ),
       ),
+    );
+  }
+
+  void showRestrictionDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+
+        return Dialog(
+          backgroundColor:
+              Colors.transparent, // We use the container for styling
+          insetPadding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF161B22) : Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: Colors.amber.withOpacity(0.3)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 1. Icon Header
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.lock_person_rounded,
+                    color: Colors.amber,
+                    size: 40,
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // 2. Title
+                const Text(
+                  "Payout Restricted",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 12),
+
+                // 3. Description
+                Text(
+                  "You receive funds, please update your banking info.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: isDark ? Colors.white70 : Colors.black54,
+                    fontSize: 14,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // 4. Action Buttons
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      Navigator.pushNamed(
+                        context,
+                        '/UpdatePaymentProfile',
+                        arguments: accountInfo,
+                      ).then((value) => voidCallback());
+                      // Add your navigation to Verification Screen here
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1B5E20), // Tese Green
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      "UPDATE ACCOUNT",
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(
+                    "Dismiss",
+                    style: TextStyle(
+                      color: isDark ? Colors.white38 : Colors.black38,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

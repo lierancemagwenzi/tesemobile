@@ -1,3 +1,6 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -5,11 +8,15 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
     
 }
-
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("key.properties")
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+}
 android {
     namespace = "com.smatechgroup.smacredit"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion="26.2.11394342"
+    ndkVersion="27.0.12077973"
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -23,6 +30,21 @@ android {
 
     kotlinOptions {
         jvmTarget = JavaVersion.VERSION_17.toString()
+    }
+
+
+    signingConfigs {
+        create("release") {
+            keyAlias = keystoreProperties.getProperty("keyAlias")
+            keyPassword = keystoreProperties.getProperty("keyPassword")
+            storePassword = keystoreProperties.getProperty("storePassword")
+
+            // This assumes your .jks file is inside the android/app/ folder
+            val stFile = keystoreProperties.getProperty("storeFile")
+            if (stFile != null) {
+                storeFile = file(stFile)
+            }
+        }
     }
 
     defaultConfig {
@@ -40,9 +62,25 @@ android {
 
     buildTypes {
         release {
+            ndk {
+                debugSymbolLevel = "SYMBOL_TABLE"
+            }
+
+            isMinifyEnabled = true
+            isShrinkResources = true
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
+        }
+    }
+
+    packaging {
+        jniLibs {
+            keepDebugSymbols.add("**/*.so")
+
+            // If it still fails, try adding this to avoid conflicts
+            pickFirsts.add("**/*.so")
+            doNotStrip.add("**/*.so")
         }
     }
 }

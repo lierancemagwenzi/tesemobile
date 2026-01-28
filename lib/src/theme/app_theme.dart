@@ -7,11 +7,34 @@ final Color brandRed = const Color(0xFFFF4B2B);
 
 final ThemeData lightTheme = ThemeData(
   brightness: Brightness.light,
-  useMaterial3: false,
+  useMaterial3: true, // It is better to use true and override M3 quirks
   scaffoldBackgroundColor: Colors.white,
   primaryColor: brandGreen,
-  cardColor: Colors.white,
-  appBarTheme: const AppBarTheme(backgroundColor: Colors.white, elevation: 0),
+
+  // Use ColorScheme for better Material 3 compatibility
+  colorScheme:
+      ColorScheme.fromSeed(
+        seedColor: brandGreen,
+        brightness: Brightness.light,
+      ).copyWith(
+        surface: Colors.white,
+        onSurface: Colors.black, // Ensures text on white is visible
+      ),
+
+  appBarTheme: const AppBarTheme(
+    backgroundColor: Colors.white,
+    foregroundColor: Colors.black, // Fixes "invisible" icons/text
+    elevation: 0,
+    scrolledUnderElevation: 0, // Prevents color change on scroll
+    centerTitle: false,
+    iconTheme: IconThemeData(color: Colors.black),
+    titleTextStyle: TextStyle(
+      color: Colors.black,
+      fontSize: 20,
+      fontWeight: FontWeight.bold,
+    ),
+  ),
+
   textTheme: const TextTheme(
     headlineLarge: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
     bodyMedium: TextStyle(color: Colors.black87),

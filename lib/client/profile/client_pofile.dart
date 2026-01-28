@@ -33,6 +33,7 @@ class _ClientProfileScreenState extends StateMVC<ClientProfileScreen> {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        automaticallyImplyLeading: false,
         elevation: 0,
         centerTitle: true,
         title: Text(

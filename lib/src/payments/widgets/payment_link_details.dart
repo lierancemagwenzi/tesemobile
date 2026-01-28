@@ -558,7 +558,7 @@ class _PaymentLinkSuccessScreenState
       // 3. Launch the URL using the inAppWebView mode
       await launchUrl(
         url,
-        mode: LaunchMode.inAppWebView,
+        mode: LaunchMode.externalApplication,
         // You can customize the appearance of the web view here (iOS only)
         // webViewConfiguration: const WebViewConfiguration(
         //   enableJavaScript: true,
@@ -681,9 +681,9 @@ class _PaymentLinkSuccessScreenState
             border: Border.all(color: Colors.red.shade400),
           ),
           child: OutlinedButton.icon(
-            icon: const Icon(Icons.cloud_download, color: Colors.red),
+            icon: const Icon(Icons.share, color: Colors.red),
             label: const Text(
-              'Download',
+              'Share QR Code',
               style: TextStyle(
                 color: Colors.red,
                 fontSize: 16,

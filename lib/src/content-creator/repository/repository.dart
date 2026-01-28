@@ -555,7 +555,63 @@ Future<Playlist?> update_playlist(Map map) async {
     return null;
   }
 }
+Future<UploadIdModel?> upload_video_thumb(File files, int id) async {
+  try {
+    var postUri = Uri.parse(
+      "${GlobalConfiguration().getValue('api_base_url')}/creator/update-video-thumb",
+    );
+    http.MultipartRequest request = new http.MultipartRequest("POST", postUri);
+    request.fields['extension'] = files.path.split('.').last;
+    // request.fields['user_id'] = currentuser.value.id.toString();
+    var files2 = [];
 
+    File element = files;
+    final mimeType = lookupMimeType(element.path); // 'image/jpeg'
+    print(mimeType);
+    http.MultipartFile multipartFile = await http.MultipartFile.fromPath(
+      'Image',
+      element.path,
+      // contentType: MediaType.parse(mimeType!),
+    );
+    request.files.add(multipartFile);
+
+    request.fields['uploads'] = jsonEncode(files2);
+    request.fields['id'] = id.toString();
+    Map<String, String> headers = {
+      // 💡 Authorization header for Bearer tokens
+      'Authorization': 'Bearer ${currentuser.value.token}',
+    };
+
+    // 4. Assign the headers to the request
+    request.headers.addAll(headers);
+    // http.StreamedResponse response = await request.send();
+
+    Future<http.StreamedResponse> responseFuture = request.send();
+    http.StreamedResponse response = await responseFuture.timeout(
+      Duration(seconds: 60),
+      onTimeout: () {
+        // This block is executed if the timeout occurs
+        throw TimeoutException('Request timed out after  seconds.');
+      },
+    );
+    var responseB = await http.Response.fromStream(response);
+
+    print(responseB.body);
+    if (response.statusCode == 200) {
+      UploadIdModel uploadIdModel = UploadIdModel.fromJson(
+        jsonDecode(responseB.body),
+      );
+
+      return uploadIdModel;
+
+      // Navigator.pop(scaffoldKey.currentContext!,'Document uploaded!');
+    } else {
+      return null;
+    }
+  } catch (e) {
+    return null;
+  }
+}
 Future<UploadIdModel?> upload_channel_logo(File files, int id) async {
   try {
     var postUri = Uri.parse(

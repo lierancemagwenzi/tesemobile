@@ -4,6 +4,7 @@ import 'package:mvc_pattern/mvc_pattern.dart';
 import 'package:smacredit/src/notifications/controllers/notification_controller.dart';
 import 'package:smacredit/src/notifications/models/notification_model.dart';
 import 'package:smacredit/src/notifications/widgets/notification_details.dart';
+import 'package:smacredit/src/widgets/CustomOverlay.dart';
 
 // --- Data Model for a Single Notification ---
 class NotificationItem {
@@ -55,39 +56,40 @@ class NotificationCard extends StatelessWidget {
           ),
         ],
       ),
-      child: InkWell(
-        onTap: () {
-          Navigator.of(context)
-              .push(
-                MaterialPageRoute(
-                  builder: (context) =>
-                      NotificationDetailScreen(notification: notificationModel),
-                ),
-              )
-              .then((_) {
-                onClick!();
-              });
-        },
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Icon
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: notification.iconColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                notification.icon,
-                color: notification.iconColor,
-                size: 24,
-              ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Icon
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: notification.iconColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
             ),
-            const SizedBox(width: 16),
+            child: Icon(
+              notification.icon,
+              color: notification.iconColor,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 16),
 
-            // Details (Title, Description, Time)
-            Expanded(
+          // Details (Title, Description, Time)
+          Expanded(
+            child: InkWell(
+              onTap: () {
+                Navigator.of(context)
+                    .push(
+                      MaterialPageRoute(
+                        builder: (context) => NotificationDetailScreen(
+                          notification: notificationModel,
+                        ),
+                      ),
+                    )
+                    .then((_) {
+                      onClick!();
+                    });
+              },
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -112,18 +114,25 @@ class NotificationCard extends StatelessWidget {
                 ],
               ),
             ),
+          ),
 
-            // Delete Icon
-            GestureDetector(
-              onTap: onDelete,
-              child: Icon(
-                Icons.delete_outline,
-                color: Colors.grey.shade400,
-                size: 22,
+          // Delete Icon
+          InkWell(
+            onTap: onDelete,
+            child: Container(
+              height: 50,
+              width: 50,
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Icon(
+                  Icons.delete_outline,
+                  color: Colors.grey.shade400,
+                  size: 22,
+                ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -216,10 +225,7 @@ class _NotificationsScreenState extends StateMVC<NotificationsScreen> {
   }
 
   void _deleteNotification(NotificationModel notification) {
-    setState(() {
-      _allNotifications.remove(notification);
-      // In a real app, you'd also update your backend/database
-    });
+    _con.DeleteNotification(notification.id ?? 0);
   }
 
   @override
@@ -230,89 +236,96 @@ class _NotificationsScreenState extends StateMVC<NotificationsScreen> {
         .red
         .shade400; // Keeping red for specific accents like the bell icon
 
-    return Scaffold(
-      backgroundColor: Colors.grey.shade50, // Light grey background
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: Container(
-          margin: const EdgeInsets.only(left: 16, top: 8, bottom: 8),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.grey.shade200),
-          ),
-          child: IconButton(
-            icon: const Icon(
-              Icons.arrow_back_ios_new,
-              size: 20,
-              color: Colors.black,
+    return CustomOverlay(
+      loading: _con.loading,
+      child: Scaffold(
+        key: _con.scaffoldKey,
+        backgroundColor: Colors.grey.shade50, // Light grey background
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          leading: Container(
+            margin: const EdgeInsets.only(left: 16, top: 8, bottom: 8),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.grey.shade200),
             ),
-            onPressed: () {
-              Navigator.pop(context);
-              // Handle back navigation
-            },
-          ),
-        ),
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Notifications',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
+            child: IconButton(
+              icon: const Icon(
+                Icons.arrow_back_ios_new,
+                size: 20,
+                color: Colors.black,
               ),
+              onPressed: () {
+                Navigator.pop(context);
+                // Handle back navigation
+              },
             ),
-            Text(
-              '${_con.notifications.where((n) => !n.opened!).length} unread notifications',
-              style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
-            ),
+          ),
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Notifications',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              Text(
+                '${_con.notifications.where((n) => !n.opened!).length} unread notifications',
+                style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+              ),
+            ],
+          ),
+          centerTitle: false,
+        ),
+        body: Column(
+          children: [
+            const SizedBox(height: 16),
+            // Tab Selector (All / Unread)
+            _buildTabSelector(primaryGreen, accentRed),
+            const SizedBox(height: 16),
+
+            // Notification List
+            _filteredNotifications.isEmpty
+                ? Center(
+                    child: Column(
+                      children: [
+                        SizedBox(height: 50),
+                        Text("No notifications found"),
+                      ],
+                    ),
+                  )
+                : Expanded(
+                    child: ListView.builder(
+                      itemCount: _filteredNotifications.length,
+                      itemBuilder: (context, index) {
+                        final notification = _filteredNotifications[index];
+                        return NotificationCard(
+                          notification: NotificationItem(
+                            icon: Icons.check_circle_outline,
+                            iconColor: Colors.green,
+                            title: notification.title ?? '',
+                            description: notification.body ?? '',
+                            time: formatRelativeTime(
+                              notification.createdAt ?? DateTime.now(),
+                            ),
+                            isRead: notification.opened ?? false,
+                          ),
+                          onDelete: () {
+                            print("cliked");
+                            _deleteNotification(notification);
+                          },
+                          notificationModel: notification,
+                          onClick: () => _con.MarkAsRead(notification.id!),
+                        );
+                      },
+                    ),
+                  ),
           ],
         ),
-        centerTitle: false,
-      ),
-      body: Column(
-        children: [
-          const SizedBox(height: 16),
-          // Tab Selector (All / Unread)
-          _buildTabSelector(primaryGreen, accentRed),
-          const SizedBox(height: 16),
-
-          // Notification List
-          _filteredNotifications.isEmpty
-              ? Center(
-                  child: Column(
-                    children: [
-                      SizedBox(height: 50),
-                      Text("No notifications found"),
-                    ],
-                  ),
-                )
-              : Expanded(
-                  child: ListView.builder(
-                    itemCount: _filteredNotifications.length,
-                    itemBuilder: (context, index) {
-                      final notification = _filteredNotifications[index];
-                      return NotificationCard(
-                        notification: NotificationItem(
-                          icon: Icons.check_circle_outline,
-                          iconColor: Colors.green,
-                          title: notification.title ?? '',
-                          description: notification.body ?? '',
-                          time: formatRelativeTime(
-                            notification.createdAt ?? DateTime.now(),
-                          ),
-                          isRead: notification.opened ?? false,
-                        ),
-                        onDelete: () => _deleteNotification(notification),
-                        notificationModel: notification,
-                        onClick: () => _con.MarkAsRead(notification.id!),
-                      );
-                    },
-                  ),
-                ),
-        ],
       ),
     );
   }

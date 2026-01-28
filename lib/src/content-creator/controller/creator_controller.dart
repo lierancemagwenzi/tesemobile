@@ -262,6 +262,27 @@ class CreatorController extends ControllerMVC {
     });
   }
 
+  Future<void> updateVideoThumb(File file, int id) async {
+    setState(() {
+      loading = true;
+    });
+    upload_video_thumb(file, id).then((v) {
+      setState(() {
+        loading = false;
+      });
+      if (v != null) {
+        setState(() {
+          profileImage = v;
+        });
+      } else {
+        CustomMessageHandler().showErrorSnakeBar(
+          scaffoldKey.currentContext!,
+          "Something went wrong.Try again",
+        );
+      }
+    });
+  }
+
   Future<void> updateChannelCover(File file, int id) async {
     setState(() {
       loading = true;

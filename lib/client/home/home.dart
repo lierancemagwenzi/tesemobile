@@ -4,6 +4,7 @@ import 'package:mvc_pattern/mvc_pattern.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:smacredit/client/controller/client_user_controller.dart';
 import 'package:smacredit/client/home/tese_drawer.dart';
+import 'package:smacredit/src/content-creator/models/channel_model.dart';
 import 'package:smacredit/src/models/UserModel.dart';
 import 'package:smacredit/src/repositories/user_repository.dart';
 import 'package:smacredit/src/theme/app_theme.dart';
@@ -42,6 +43,7 @@ class _ClientHomeWidgetState extends StateMVC<ClientHomeWidget> {
 
     _con.listenForDashboard();
     _con.listenForDashboardVideos();
+    _con.listenForDashboardCategories();
   }
 
   @override
@@ -122,8 +124,25 @@ class _ClientHomeWidgetState extends StateMVC<ClientHomeWidget> {
                   '/CreatorExplorer',
                 ),
 
-                _builVideoList(isDark),
+                _builVideoList(isDark, _con.videos),
               ],
+
+              if (_con.the_categories.isNotEmpty) ...[],
+
+              ..._con.the_categories.map(
+                (e) => Column(
+                  children: [
+                    _buildSectionHeader(
+                      context,
+                      "${e.name}",
+                      false,
+                      '/CreatorExplorer',
+                    ),
+
+                    _builVideoList(isDark, e.videos ?? []),
+                  ],
+                ),
+              ),
 
               const SizedBox(height: 100), // Padding for the FAB notch
             ],
@@ -437,44 +456,72 @@ class _ClientHomeWidgetState extends StateMVC<ClientHomeWidget> {
                     children: [
                       ClipRRect(
                         borderRadius: BorderRadius.circular(20),
-                        child: Image.network(
-                          cat.image ?? "",
-                          height: 150,
-                          width: 150,
-                          fit: BoxFit.cover,
-
-                          loadingBuilder: (context, child, loadingProgress) {
-                            if (loadingProgress == null)
-                              return child; // Image finished loading
-
-                            return Shimmer.fromColors(
-                              baseColor: Colors.grey[300]!,
-                              highlightColor: Colors.grey[100]!,
-                              period: const Duration(milliseconds: 1500),
-                              child: Container(
-                                width: 150,
+                        child: 1 == 1
+                            ? CachedNetworkImage(
+                                imageUrl: cat.image ?? "",
+                                fit: BoxFit.cover,
                                 height: 150,
-                                color: Colors.white,
-                              ),
-                            );
-                          },
-
-                          errorBuilder: (context, error, stackTrace) =>
-                              Container(
-                                width: 160,
-                                height: 140,
-                                color: isDark
-                                    ? const Color(0xFF1C1C1E)
-                                    : Colors.grey.shade200,
-                                child: Icon(
-                                  Icons.broken_image,
-                                  color: isDark
-                                      ? Colors.white10
-                                      : Colors.grey.shade400,
-                                  size: 40,
+                                width: 150,
+                                // 1. Placeholder shown while downloading
+                                placeholder: (context, url) => Container(
+                                  color: Colors.grey[900], // Matches Tese Navy
+                                  child: const Center(
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Color(0xFF1B5E20),
+                                    ),
+                                  ),
                                 ),
+                                // 2. Error widget shown if the link is broken
+                                errorWidget: (context, url, error) => Container(
+                                  color: Colors.grey[800],
+                                  child: const Icon(
+                                    Icons.broken_image,
+                                    color: Colors.white24,
+                                  ),
+                                ),
+                              )
+                            : Image.network(
+                                cat.image ?? "",
+                                height: 150,
+                                width: 150,
+                                fit: BoxFit.cover,
+
+                                loadingBuilder:
+                                    (context, child, loadingProgress) {
+                                      if (loadingProgress == null)
+                                        return child; // Image finished loading
+
+                                      return Shimmer.fromColors(
+                                        baseColor: Colors.grey[300]!,
+                                        highlightColor: Colors.grey[100]!,
+                                        period: const Duration(
+                                          milliseconds: 1500,
+                                        ),
+                                        child: Container(
+                                          width: 150,
+                                          height: 150,
+                                          color: Colors.white,
+                                        ),
+                                      );
+                                    },
+
+                                errorBuilder: (context, error, stackTrace) =>
+                                    Container(
+                                      width: 160,
+                                      height: 140,
+                                      color: isDark
+                                          ? const Color(0xFF1C1C1E)
+                                          : Colors.grey.shade200,
+                                      child: Icon(
+                                        Icons.broken_image,
+                                        color: isDark
+                                            ? Colors.white10
+                                            : Colors.grey.shade400,
+                                        size: 40,
+                                      ),
+                                    ),
                               ),
-                        ),
                       ),
                       // Positioned(
                       //   top: 10,
@@ -553,42 +600,70 @@ class _ClientHomeWidgetState extends StateMVC<ClientHomeWidget> {
                     children: [
                       ClipRRect(
                         borderRadius: BorderRadius.circular(20),
-                        child: Image.network(
-                          creator?.selfie ?? "",
-                          height: 140,
-                          width: 160,
-                          fit: BoxFit.cover,
-                          loadingBuilder: (context, child, loadingProgress) {
-                            if (loadingProgress == null)
-                              return child; // Image finished loading
-
-                            return Shimmer.fromColors(
-                              baseColor: Colors.grey[300]!,
-                              highlightColor: Colors.grey[100]!,
-                              period: const Duration(milliseconds: 1500),
-                              child: Container(
-                                width: 160,
+                        child: 1 == 1
+                            ? CachedNetworkImage(
+                                imageUrl: creator?.selfie ?? "",
+                                fit: BoxFit.cover,
                                 height: 140,
-                                color: Colors.white,
-                              ),
-                            );
-                          },
-                          errorBuilder: (context, error, stackTrace) =>
-                              Container(
                                 width: 160,
-                                height: 140,
-                                color: isDark
-                                    ? const Color(0xFF1C1C1E)
-                                    : Colors.grey.shade200,
-                                child: Icon(
-                                  Icons.person,
-                                  color: isDark
-                                      ? Colors.white10
-                                      : Colors.grey.shade400,
-                                  size: 40,
+                                // 1. Placeholder shown while downloading
+                                placeholder: (context, url) => Container(
+                                  color: Colors.grey[900], // Matches Tese Navy
+                                  child: const Center(
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Color(0xFF1B5E20),
+                                    ),
+                                  ),
                                 ),
+                                // 2. Error widget shown if the link is broken
+                                errorWidget: (context, url, error) => Container(
+                                  color: Colors.grey[800],
+                                  child: const Icon(
+                                    Icons.broken_image,
+                                    color: Colors.white24,
+                                  ),
+                                ),
+                              )
+                            : Image.network(
+                                creator?.selfie ?? "",
+                                height: 140,
+                                width: 160,
+                                fit: BoxFit.cover,
+                                loadingBuilder:
+                                    (context, child, loadingProgress) {
+                                      if (loadingProgress == null)
+                                        return child; // Image finished loading
+
+                                      return Shimmer.fromColors(
+                                        baseColor: Colors.grey[300]!,
+                                        highlightColor: Colors.grey[100]!,
+                                        period: const Duration(
+                                          milliseconds: 1500,
+                                        ),
+                                        child: Container(
+                                          width: 160,
+                                          height: 140,
+                                          color: Colors.white,
+                                        ),
+                                      );
+                                    },
+                                errorBuilder: (context, error, stackTrace) =>
+                                    Container(
+                                      width: 160,
+                                      height: 140,
+                                      color: isDark
+                                          ? const Color(0xFF1C1C1E)
+                                          : Colors.grey.shade200,
+                                      child: Icon(
+                                        Icons.person,
+                                        color: isDark
+                                            ? Colors.white10
+                                            : Colors.grey.shade400,
+                                        size: 40,
+                                      ),
+                                    ),
                               ),
-                        ),
                       ),
                       if (1 == 2)
                         Positioned(
@@ -643,15 +718,15 @@ class _ClientHomeWidgetState extends StateMVC<ClientHomeWidget> {
     );
   }
 
-  Widget _builVideoList(bool isDark) {
+  Widget _builVideoList(bool isDark, List videos) {
     return SizedBox(
       height: 210,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.only(left: 20),
-        itemCount: _con.videos.length,
+        itemCount: videos.length,
         itemBuilder: (context, index) {
-          final creator = _con.videos[index];
+          Video creator = videos[index];
           return InkWell(
             onTap: () {
               Navigator.pushNamed(
@@ -670,44 +745,72 @@ class _ClientHomeWidgetState extends StateMVC<ClientHomeWidget> {
                     children: [
                       ClipRRect(
                         borderRadius: BorderRadius.circular(20),
-                        child: Image.network(
-                          creator.thumbnailUrl ?? "",
-                          height: 140,
-                          width: 160,
-                          fit: BoxFit.cover,
-                          loadingBuilder: (context, child, loadingProgress) {
-                            if (loadingProgress == null)
-                              return child; // Image finished loading
-
-                            return Shimmer.fromColors(
-                              baseColor: Colors.grey[300]!,
-                              highlightColor: Colors.grey[100]!,
-                              period: const Duration(milliseconds: 1500),
-                              child: Container(
-                                width: 160,
+                        child: 1 == 1
+                            ? CachedNetworkImage(
+                                imageUrl: creator.thumbnailUrl ?? "",
+                                fit: BoxFit.cover,
                                 height: 140,
-                                color: Colors.white,
-                              ),
-                            );
-                          },
-                          errorBuilder: (context, error, stackTrace) =>
-                              Container(
                                 width: 160,
-                                height: 140,
-                                color: isDark
-                                    ? const Color(0xFF1C1C1E)
-                                    : Colors.grey.shade200,
-                                child: Icon(
-                                  Icons.play_arrow_outlined,
-                                  color: isDark
-                                      ? Colors.white10
-                                      : Colors.grey.shade400,
-                                  size: 40,
+                                // 1. Placeholder shown while downloading
+                                placeholder: (context, url) => Container(
+                                  color: Colors.grey[900], // Matches Tese Navy
+                                  child: const Center(
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Color(0xFF1B5E20),
+                                    ),
+                                  ),
                                 ),
+                                // 2. Error widget shown if the link is broken
+                                errorWidget: (context, url, error) => Container(
+                                  color: Colors.grey[800],
+                                  child: const Icon(
+                                    Icons.broken_image,
+                                    color: Colors.white24,
+                                  ),
+                                ),
+                              )
+                            : Image.network(
+                                creator.thumbnailUrl ?? "",
+                                height: 140,
+                                width: 160,
+                                fit: BoxFit.cover,
+                                loadingBuilder:
+                                    (context, child, loadingProgress) {
+                                      if (loadingProgress == null)
+                                        return child; // Image finished loading
+
+                                      return Shimmer.fromColors(
+                                        baseColor: Colors.grey[300]!,
+                                        highlightColor: Colors.grey[100]!,
+                                        period: const Duration(
+                                          milliseconds: 1500,
+                                        ),
+                                        child: Container(
+                                          width: 160,
+                                          height: 140,
+                                          color: Colors.white,
+                                        ),
+                                      );
+                                    },
+                                errorBuilder: (context, error, stackTrace) =>
+                                    Container(
+                                      width: 160,
+                                      height: 140,
+                                      color: isDark
+                                          ? const Color(0xFF1C1C1E)
+                                          : Colors.grey.shade200,
+                                      child: Icon(
+                                        Icons.play_arrow_outlined,
+                                        color: isDark
+                                            ? Colors.white10
+                                            : Colors.grey.shade400,
+                                        size: 40,
+                                      ),
+                                    ),
                               ),
-                        ),
                       ),
-                      if (1 == 2)
+                      if (creator.accessType == 'paid')
                         Positioned(
                           top: 10,
                           left: 10,
@@ -720,17 +823,17 @@ class _ClientHomeWidgetState extends StateMVC<ClientHomeWidget> {
                               color: brandGreen,
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: const Row(
+                            child: Row(
                               children: [
-                                Icon(
+                                const Icon(
                                   Icons.workspace_premium,
                                   color: Colors.orange,
                                   size: 12,
                                 ),
-                                SizedBox(width: 4),
+                                const SizedBox(width: 4),
                                 Text(
-                                  "EXCLUSIVE",
-                                  style: TextStyle(
+                                  "${creator.currency ?? "USD"} ${(creator.price ?? 0.00).toStringAsFixed(2)}",
+                                  style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 9,
                                     fontWeight: FontWeight.bold,

@@ -13,12 +13,12 @@ class ClientDashboardModel {
     return ClientDashboardModel(
       creators: json['creators'] != null
           ? (json['creators'] as List).map((i) => Creator.fromJson(i)).toList()
-          : null,
+          : [],
       categories: json['categories'] != null
           ? (json['categories'] as List)
                 .map((i) => Category.fromJson(i))
                 .toList()
-          : null,
+          : [],
       video: json['video'] != null
           ? VideoWrapper.fromJson(json['video'])
           : null,
@@ -46,22 +46,30 @@ class Creator {
   }
 }
 
-
-
 class Category {
   final int? id;
   final String? name;
   final String? image;
   final String? description;
   final int? videoCount;
-
-  Category({this.id, this.name, this.image, this.description, this.videoCount});
+  final List<Video>? videos;
+  Category({
+    this.id,
+    this.name,
+    this.image,
+    this.description,
+    this.videoCount,
+    this.videos,
+  });
 
   factory Category.fromJson(Map<String, dynamic> json) {
     return Category(
       id: json['id'],
       name: json['name'],
       image: json['image'],
+      videos: json['videos'] != null
+          ? (json['videos'] as List).map((i) => Video.fromJson(i)).toList()
+          : null,
       description: json['description'],
       videoCount: json['videoCount'],
     );
@@ -81,10 +89,7 @@ class VideoWrapper {
       id: json['id'],
       videoId: json['video_id'],
       status: json['status'],
-      video: json['video'] != null
-          ? Video.fromJson(json['video'])
-          : null,
+      video: json['video'] != null ? Video.fromJson(json['video']) : null,
     );
   }
 }
-

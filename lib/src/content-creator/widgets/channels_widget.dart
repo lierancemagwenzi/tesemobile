@@ -193,16 +193,16 @@ class _ChannelListScreenState extends StateMVC<ChannelListScreen> {
           ),
 
           // Filter Button
-          Container(
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.grey.shade200),
-            ),
-            child: const IconButton(
-              icon: Icon(Icons.tune, size: 24, color: Colors.red),
-              onPressed: null, // Placeholder action
-            ),
-          ),
+          // Container(
+          //   decoration: BoxDecoration(
+          //     shape: BoxShape.circle,
+          //     border: Border.all(color: Colors.grey.shade200),
+          //   ),
+          //   child: const IconButton(
+          //     icon: Icon(Icons.tune, size: 24, color: Colors.red),
+          //     onPressed: null, // Placeholder action
+          //   ),
+          // ),
         ],
       ),
     );

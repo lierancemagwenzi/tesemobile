@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:mvc_pattern/mvc_pattern.dart';
 import 'package:smacredit/client/models/dashboard_model.dart';
 import 'package:smacredit/client/models/media_response.dart';
+import 'package:smacredit/client/models/search_result.dart';
 import 'package:smacredit/client/payments/models/payment_response.dart';
 import 'package:smacredit/client/respository/client_repositoy.dart';
 import 'package:smacredit/src/auth/models/UploadIDModel.dart';
@@ -31,6 +32,14 @@ class ClientUserController extends ControllerMVC {
   List<Playlist> playlists = [];
   List<Channel> channels = [];
   List<Video> videos = [];
+
+  List<Category> the_categories = [];
+
+  List<Video> likedVideos = [];
+
+  SearchResult? searchResult;
+
+  List<Video> watchedVideos = [];
   Category? category;
   VideoStatsModel? videoStatsModel;
   ClientUserController() {
@@ -286,6 +295,36 @@ class ClientUserController extends ControllerMVC {
     );
   }
 
+  Future<void> listenForDashboardCategories() async {
+    setState(() {
+      loading = true;
+      the_categories = [];
+    });
+    final Stream<Category?> stream = await get__dashboard_categories();
+    stream.listen(
+      (Category? notificationModel) {
+        if (notificationModel != null) {
+          setState(() {
+            the_categories.add(notificationModel);
+          });
+        }
+      },
+      onError: (a) {
+        setState(() {
+          loading = false;
+        });
+        if (kDebugMode) {
+          print(a);
+        }
+      },
+      onDone: () {
+        setState(() {
+          loading = false;
+        });
+      },
+    );
+  }
+
   Future<void> listenForDashboardVideos() async {
     setState(() {
       loading = true;
@@ -325,6 +364,66 @@ class ClientUserController extends ControllerMVC {
         if (notificationModel != null) {
           setState(() {
             videos.add(notificationModel);
+          });
+        }
+      },
+      onError: (a) {
+        setState(() {
+          loading = false;
+        });
+        if (kDebugMode) {
+          print(a);
+        }
+      },
+      onDone: () {
+        setState(() {
+          loading = false;
+        });
+      },
+    );
+  }
+
+  Future<void> listenForLikedVideos() async {
+    setState(() {
+      loading = true;
+      likedVideos.clear();
+    });
+    final Stream<Video?> stream = await get_liked_videos();
+    stream.listen(
+      (Video? notificationModel) {
+        if (notificationModel != null) {
+          setState(() {
+            likedVideos.add(notificationModel);
+          });
+        }
+      },
+      onError: (a) {
+        setState(() {
+          loading = false;
+        });
+        if (kDebugMode) {
+          print(a);
+        }
+      },
+      onDone: () {
+        setState(() {
+          loading = false;
+        });
+      },
+    );
+  }
+
+  Future<void> listenForWatchedVideos() async {
+    setState(() {
+      loading = true;
+      watchedVideos.clear();
+    });
+    final Stream<Video?> stream = await get_watched_videos();
+    stream.listen(
+      (Video? notificationModel) {
+        if (notificationModel != null) {
+          setState(() {
+            watchedVideos.add(notificationModel);
           });
         }
       },
@@ -420,6 +519,20 @@ class ClientUserController extends ControllerMVC {
     PaymentResponseWrapper? res = await make_video_payment(map);
     setState(() {
       loading = false;
+    });
+
+    return res;
+  }
+
+  Future<SearchResult?> search(Map map) async {
+    setState(() {
+      loading = true;
+    });
+
+    SearchResult? res = await client_search(map);
+    setState(() {
+      loading = false;
+      searchResult = res;
     });
 
     return res;

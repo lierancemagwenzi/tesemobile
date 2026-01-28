@@ -66,7 +66,12 @@ class NotificationController extends ControllerMVC {
           scaffoldKey.currentContext!,
           "Notification removed",
         );
-      } else {}
+      } else {
+        CustomMessageHandler().showErrorSnakeBar(
+          scaffoldKey.currentContext!,
+          "Failed to remove notification",
+        );
+      }
     });
   }
 
@@ -82,10 +87,10 @@ class NotificationController extends ControllerMVC {
           // notifications[index].opened = value;
           success = true;
         });
-        CustomMessageHandler().showSuccessSnakeBar(
-          scaffoldKey.currentContext!,
-          "Done!",
-        );
+        // CustomMessageHandler().showSuccessSnakeBar(
+        //   scaffoldKey.currentContext!,
+        //   "Done!",
+        // );
       } else {}
     });
   }

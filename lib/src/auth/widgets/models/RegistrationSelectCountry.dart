@@ -114,7 +114,11 @@ class _RegistrationSelectCountryWidgetState
                 text: 'Next',
                 callback: country != null
                     ? () {
-                        showUserTypeSelector(context);
+                        Navigator.pushNamed(
+                          context,
+                          '/RegistrationImages',
+                          arguments: country!,
+                        );
                       }
                     : () {},
               ),

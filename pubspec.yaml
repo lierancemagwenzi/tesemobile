@@ -115,7 +115,8 @@ dependency_overrides:
   lottie: ^3.1.2
   intl: ^0.20.2
   gallery_saver_plus: ^3.2.9
-
+  webview_flutter: ^4.10.0
+  device_info_plus: ^11.4.0
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is

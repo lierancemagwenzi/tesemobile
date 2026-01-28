@@ -14,10 +14,37 @@ class _PaymentModalState extends State<PaymentModal> {
   final _formKey = GlobalKey<FormState>();
 
   final List<Map<String, dynamic>> _methods = [
-    {'id': 'ECOCASH', 'label': 'EcoCash', 'icon': Icons.account_balance_wallet},
+    {
+      'id': 'Ecocash',
+      'label': 'EcoCash',
+      'icon': Icons.account_balance_wallet,
+      'image': 'assets/images/ecocash.png',
+    },
     // {'id': 'ZIMSWITCH', 'label': 'Zimswitch', 'icon': Icons.swap_horiz},
-    {'id': 'VISA', 'label': 'Visa', 'icon': Icons.credit_card},
-    {'id': 'MASTERCARD', 'label': 'Mastercard', 'icon': Icons.payment},
+    {
+      'id': 'Visa',
+      'label': 'Visa',
+      'icon': Icons.credit_card,
+      'image': 'assets/images/visa.png',
+    },
+    {
+      'id': 'Mastercard',
+      'label': 'Mastercard',
+      'icon': Icons.payment,
+      'image': 'assets/images/mastercard.png',
+    },
+    {
+      'id': 'ZimSwitch',
+      'label': 'ZimSwitch',
+      'icon': Icons.payment,
+      'image': 'assets/images/zimswitch.png',
+    },
+    {
+      'id': 'InnBucks',
+      'label': 'InnBucks',
+      'icon': Icons.payment,
+      'image': 'assets/images/innbucks.png',
+    },
   ];
 
   @override
@@ -42,20 +69,31 @@ class _PaymentModalState extends State<PaymentModal> {
 
             // Payment Method List
             ..._methods.map(
-              (method) => RadioListTile<String>(
-                title: Text(method['label']),
-                secondary: Icon(
-                  method['icon'],
-                  color: theme.colorScheme.primary,
+              (method) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: RadioListTile<String>(
+                  title: Text(method['label']),
+                  secondary: Container(
+                    color: Colors.white,
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Image.asset(
+                        method['image'],
+                        height: 40,
+                        width: 50,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  ),
+                  value: method['id'],
+                  groupValue: _selectedMethod,
+                  onChanged: (val) => setState(() => _selectedMethod = val),
                 ),
-                value: method['id'],
-                groupValue: _selectedMethod,
-                onChanged: (val) => setState(() => _selectedMethod = val),
               ),
             ),
 
             // Conditional EcoCash TextField
-            if (_selectedMethod == 'ECOCASH') ...[
+            if (_selectedMethod?.toLowerCase() == 'ecocash') ...[
               const SizedBox(height: 10),
               TextFormField(
                 controller: _phoneController,
@@ -99,7 +137,8 @@ class _PaymentModalState extends State<PaymentModal> {
                             context,
                             PaymentSelection(
                               method: _selectedMethod!,
-                              ecoCashNumber: _selectedMethod == 'ECOCASH'
+                              ecoCashNumber:
+                                  _selectedMethod?.toLowerCase() == 'ecocash'
                                   ? _phoneController.text
                                   : null,
                             ),

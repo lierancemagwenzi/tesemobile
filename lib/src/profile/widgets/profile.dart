@@ -165,7 +165,7 @@ class _ProfileScreenState extends StateMVC<ProfileScreen> {
                     const SizedBox(height: 16),
                     const SizedBox(height: 8),
                     // 7. Update Button
-                    // _buildUpdateButton(context),
+                    _buildUpdateButton(context),
                   ],
                 ),
               ),
