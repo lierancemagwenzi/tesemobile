@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 2.0.1+2
+version: 2.0.4+4
 
 environment:
   sdk: ^3.9.2
@@ -141,7 +141,16 @@ flutter:
      - assets/images/
      - assets/cfg/
      - assets/fonts1/
-
+  fonts:
+    - family: Poppins
+      fonts:
+        - asset: assets/fonts1/Poppins-Regular.ttf
+    - family: FigTree
+      fonts:
+        - asset: assets/fonts1/Figtree.ttf
+    # - family: OpenSans
+    #   fonts:
+    #     - asset: assets/fonts/OpenSans.ttf
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 

@@ -28,55 +28,40 @@ class _OnBoardingWidgetState extends State<OnBoardingWidget> {
     rawPages.add(
       OnBoardingPage(
         body:
-            'Cut out the middlemen. We give you instant, secure payment links so fans can tip, support, and pay you for your unique content, passion, and time—no platform fees required',
-        title: "Get Paid Directly for Your Talent.",
+            'Instant notifications for every transaction. Transfer funds to your bank instantly',
+        title: "Get Paid.",
         showSkip: true,
-        button: SizedBox(
-          height: 50,
-          child: CustomButtons.filledButton(
-            text: 'Next',
-            callback: () {
-              return _introKey.currentState?.next();
-            },
-          ),
-        ),
-        image: "assets/images/bg1.png",
+
+        image: "assets/images/image1.png",
+        onNext: () {
+          return _introKey.currentState?.next();
+        },
       ),
     );
     rawPages.add(
       OnBoardingPage(
         body:
-            'From one-time tips for a great video to setting up a custom price for a personalized commission or selling exclusive merch, create the exact payment link you need in seconds.',
-        title: "Monetize Every Idea, Effortlessly.",
+            'Create pofessional payment links in seconds. Simply enter the amount and description.',
+        title: "Generate your payment link now",
         showSkip: true,
-        button: SizedBox(
-          height: 50,
-          child: CustomButtons.filledButton(
-            text: 'Next',
-            callback: () {
-              return _introKey.currentState?.next();
-            },
-          ),
-        ),
-        image: "assets/images/bg2.png",
+
+        image: "assets/images/image2.png",
+        onNext: () {
+          return _introKey.currentState?.next();
+        },
       ),
     );
 
     rawPages.add(
       OnBoardingPage(
         body:
-            'Keep 100% of your fan data and leverage powerful insights to grow your paying community. Whether you\'re selling custom goods or accepting support, manage everything in one place.',
-        title: "Your Content, Your Business.",
-        button: SizedBox(
-          height: 50,
-          child: CustomButtons.filledButton(
-            text: 'Next',
-            callback: () {
-              Navigator.pushNamed(context, '/Login');
-            },
-          ),
-        ),
-        image: "assets/images/bg3.png",
+            'Share your payment link on Youtube, Instagram, Facebook and X. Get paid from any social platform',
+        title: "Share on all social media platforms.",
+
+        image: "assets/images/image3.png",
+        onNext: () {
+          Navigator.pushNamed(context, '/Login');
+        },
       ),
     );
 

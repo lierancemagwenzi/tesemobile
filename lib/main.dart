@@ -27,7 +27,7 @@ import 'package:smacredit/src/theme/theme_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-await FlutterDownloader.initialize(
+  await FlutterDownloader.initialize(
     debug: true, // set to false in production
     ignoreSsl: true, // option to ignore SSL (use with caution)
   );
@@ -40,8 +40,8 @@ await FlutterDownloader.initialize(
   await Firebase.initializeApp(
     options: Platform.isAndroid
         ? FirebaseOptions(
-            apiKey: 'AIzaSyDF9waYRPPIoXPClg4ixNfOUag8aylBWLY',
-            appId: '1:969071079065:android:1b3c17a3bf7f1503bb1208',
+            apiKey: 'AIzaSyBGBo-zhqIU_1vdaClT8cKgZ9FySBUeT7U',
+            appId: '1:663952460068:android:7a145a8e1c4307151a4bb1',
             messagingSenderId: '663952460068',
             projectId: 'tese-eba00',
           )
@@ -57,7 +57,7 @@ await FlutterDownloader.initialize(
   settingRepo.initSettings();
   LoadUser();
   init();
-  initializeDateFormatting().then((_) => runApp( TeseApp()));
+  initializeDateFormatting().then((_) => runApp(TeseApp()));
 }
 
 void LoadUser() async {
@@ -97,7 +97,6 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   print("Handling a background message: ${message.messageId}");
 }
 
-
 class TeseApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -108,7 +107,7 @@ class TeseApp extends StatelessWidget {
           theme: lightTheme,
           darkTheme: darkTheme,
           themeMode: mode, // This controls the switch
-           navigatorKey: settingRepo.navigatorKey,
+          navigatorKey: settingRepo.navigatorKey,
           title: 'Tese',
           initialRoute: '/Splash',
           //       initialRoute: '/Intro',
@@ -123,7 +122,7 @@ class TeseApp extends StatelessWidget {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {

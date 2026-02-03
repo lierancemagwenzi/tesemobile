@@ -16,10 +16,10 @@ class RegisterDetailsWidget extends StatefulWidget {
   RegistrationDocumentsModel registrationDocumentsModel;
 
   RegisterDetailsWidget({
-    Key? key,
+    super.key,
     required this.registrationDocumentsModel,
     required this.regDetailsModel,
-  }) : super(key: key);
+  });
 
   @override
   _RegisterDetailsWidgetState createState() => _RegisterDetailsWidgetState();
@@ -33,7 +33,7 @@ class _RegisterDetailsWidgetState extends StateMVC<RegisterDetailsWidget> {
   String email = '';
 
   String password2 = '';
-  bool checkedValue = false;
+  bool checkedValue = true;
   bool hidePassword = true;
 
   late LoginController _con;
@@ -308,10 +308,26 @@ class _RegisterDetailsWidgetState extends StateMVC<RegisterDetailsWidget> {
                     validator: (value) {
                       return Validator.validateConfirmPassword(password, value);
                     },
+                    obscureText: hidePassword,
                     style: Theme.of(
                       context,
                     ).textTheme.bodyMedium!.copyWith(color: Colors.black),
                     decoration: InputDecoration(
+                      suffixIcon: InkWell(
+                        onTap: () {
+                          setState(() {
+                            hidePassword = !hidePassword;
+                          });
+                        },
+
+                        child: Icon(
+                          hidePassword
+                              ? Icons.visibility
+                              : Icons.visibility_off,
+                          color: Colors.grey,
+                        ),
+                      ),
+
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10.0),
                       ),
@@ -339,23 +355,23 @@ class _RegisterDetailsWidgetState extends StateMVC<RegisterDetailsWidget> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  CheckboxListTile(
-                    title: Text(
-                      "I agree to SmatPay terms and conditions",
-                      style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                        color: Constants.greyColor,
-                      ),
-                    ),
-                    value: checkedValue,
+                  // CheckboxListTile(
+                  //   title: Text(
+                  //     "I agree to SmatPay terms and conditions",
+                  //     style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                  //       color: Constants.greyColor,
+                  //     ),
+                  //   ),
+                  //   value: checkedValue,
 
-                    onChanged: (newValue) {
-                      setState(() {
-                        checkedValue = newValue!;
-                      });
-                    },
-                    controlAffinity: ListTileControlAffinity
-                        .leading, //  <-- leading Checkbox
-                  ),
+                  //   onChanged: (newValue) {
+                  //     setState(() {
+                  //       checkedValue = newValue!;
+                  //     });
+                  //   },
+                  //   controlAffinity: ListTileControlAffinity
+                  //       .leading, //  <-- leading Checkbox
+                  // ),
                 ],
               ),
             ),

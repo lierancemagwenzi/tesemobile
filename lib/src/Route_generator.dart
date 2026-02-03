@@ -42,7 +42,6 @@ import 'package:smacredit/src/auth/widgets/models/client_login.dart';
 import 'package:smacredit/src/auth/widgets/models/client_registration.dart';
 import 'package:smacredit/src/auth/widgets/models/onboarding_widget.dart';
 import 'package:smacredit/src/auth/widgets/models/policy_widget.dart';
-import 'package:smacredit/src/content-creator/models/category_model.dart';
 import 'package:smacredit/src/content-creator/models/channel_model.dart';
 import 'package:smacredit/src/content-creator/widgets/channel_page.dart';
 import 'package:smacredit/src/content-creator/widgets/channels_widget.dart';
@@ -93,9 +92,7 @@ import 'package:smacredit/src/scanner/IDScanner.dart';
 import 'package:smacredit/src/splash/splashscreen.dart';
 import 'package:smacredit/src/widgets/LostWidget.dart';
 
-import 'addresses/test.dart';
 import 'auth/models/RegistrationDocumentsModel.dart';
-import 'auth/widgets/models/LoginWidget.dart';
 import 'credit/ProductDetailsWidget.dart';
 import 'package:smacredit/src/models/UserModel.dart' as user;
 
@@ -111,7 +108,11 @@ class RouteGenerator {
       //client
 
       case '/ClientDashboard':
-        return CupertinoPageRoute(builder: (_) => ClientDashboardWidget());
+        return CupertinoPageRoute(
+          builder: (_) => isV1
+              ? HomeWidget(index: args != null ? args as int : null)
+              : ClientDashboardWidget(),
+        );
 
       //events
 
@@ -261,7 +262,11 @@ class RouteGenerator {
       //   );
 
       case '/Dashboard':
-        return CupertinoPageRoute(builder: (_) => ClientDashboardWidget());
+        return CupertinoPageRoute(
+          builder: (_) => isV1
+              ? HomeWidget(index: args != null ? args as int : null)
+              : ClientDashboardWidget(),
+        );
       case '/CreatePaymentLink':
         return CupertinoPageRoute(builder: (_) => CreatePaymentLinkScreen());
 
@@ -411,7 +416,7 @@ class RouteGenerator {
       case "/First":
         return MaterialPageRoute(
           builder: (BuildContext context) {
-            return TeseLandingScreen();
+            return isV1 ? FirstWidget() : TeseLandingScreen();
           },
         );
       case "/CreateChannel":

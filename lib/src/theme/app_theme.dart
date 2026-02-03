@@ -7,10 +7,10 @@ final Color brandRed = const Color(0xFFFF4B2B);
 
 final ThemeData lightTheme = ThemeData(
   brightness: Brightness.light,
-  useMaterial3: true, // It is better to use true and override M3 quirks
+  useMaterial3: false, // It is better to use true and override M3 quirks
   scaffoldBackgroundColor: Colors.white,
   primaryColor: brandGreen,
-
+  fontFamily: 'Figtree',
   // Use ColorScheme for better Material 3 compatibility
   colorScheme:
       ColorScheme.fromSeed(
@@ -43,6 +43,7 @@ final ThemeData lightTheme = ThemeData(
 
 final ThemeData darkTheme = ThemeData(
   brightness: Brightness.dark,
+   fontFamily: 'Figtree',
   useMaterial3: false,
   scaffoldBackgroundColor: const Color(0xFF0D1117), // Deep dark navy/black
   primaryColor: brandGreen,

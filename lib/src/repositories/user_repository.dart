@@ -24,6 +24,8 @@ ValueNotifier<UserModel> currentuser = ValueNotifier(UserModel());
 
 ValueNotifier<String> current_registration_email = ValueNotifier('');
 
+bool isV1=true;
+
 ValueNotifier<IdDetails?> id_details = ValueNotifier(null);
 bool initialized = false;
 FlutterLocalNotificationsPlugin? flutterLocalNotificationsPlugin;

@@ -123,14 +123,56 @@ class _TeseTermsScreenState extends State<TeseTermsScreen> {
               "All creators are required to display the \"Powered by Tese Africa\" branding on every payment interface where the Tese Africa system is implemented[cite: 76]. Non-compliance shall be deemed a material breach and may result in suspension[cite: 79].",
             ),
 
+            _buildSectionTitle("7. User Content and Intellectual Property"),
+            _buildBodyText(
+              "You retain all ownership rights to the content you upload to Tese Africa. However, by sharing content, you grant Propsmart a non-exclusive, worldwide, royalty-free license to use, display, and distribute said content for the purpose of providing the Service. You represent that you own or have the necessary licenses for all content you publish.",
+            ),
+
             _buildSectionTitle("8. Limitation of Liability"),
             _buildBodyText(
-              "TO THE FULLEST EXTENT PERMITTED BY LAW, WE DISCLAIM ALL WARRANTIES, EXPRESS OR IMPLIED, IN CONNECTION WITH THE SERVICES[cite: 219]. Propsmart is not liable for any loss or damage caused by viruses, distributed denial-of-service attacks, or other harmful materials[cite: 132].",
+              "TO THE FULLEST EXTENT PERMITTED BY LAW, WE DISCLAIM ALL WARRANTIES, EXPRESS OR IMPLIED, IN CONNECTION WITH THE SERVICES. Propsmart is not liable for any loss or damage caused by viruses, distributed denial-of-service attacks, or other harmful materials.",
+            ),
+
+            _buildSectionTitle("9. Prohibited Activities"),
+            _buildBodyText(
+              "Users are strictly prohibited from utilizing Tese Africa for any illegal purposes, including money laundering, fraud, or the distribution of copyrighted material without authorization. Non-compliance with our Acceptable Use Policy (AUP) will result in immediate account suspension.",
+            ),
+
+            _buildSectionTitle("10. Indemnification"),
+            _buildBodyText(
+              "You agree to defend, indemnify, and hold harmless Propsmart Technologies, its subsidiaries, and affiliates from any claims, liabilities, or expenses arising from your use of the Platform or your violation of these Terms.",
+            ),
+
+            _buildSectionTitle("11. Termination of Service"),
+            _buildBodyText(
+              "We reserve the right to suspend or terminate your account at our sole discretion, without notice, for conduct that we believe violates these Terms or is harmful to other users or our business interests.",
+            ),
+
+            _buildSectionTitle("12. Changes to Terms"),
+            _buildBodyText(
+              "Propsmart may modify these Terms at any time. We will notify you of significant changes via the Platform or email. Continued use of the Service after changes constitute your acceptance of the new Terms.",
             ),
 
             _buildSectionTitle("13. Governing Law"),
             _buildBodyText(
               "These Legal Terms shall be governed by and defined following the laws of Zimbabwe[cite: 193]. Propsmart technologies Pvt Ltd and yourself irrevocably consent that the courts of Zimbabwe shall have exclusive jurisdiction to resolve any dispute[cite: 194].",
+            ),
+            _buildSectionTitle("14. Corrections and Inaccuracies"),
+            _buildBodyText(
+              "There may be information on Tese Africa that contains typographical errors, inaccuracies, or omissions, including descriptions, pricing, and availability. We reserve the right to correct any errors and to change or update the information on the Services at any time, without prior notice.",
+            ),
+
+            _buildSectionTitle("15. Dispute Resolution"),
+            _buildBodyText(
+              "Any disputes arising from these Terms or your use of the Service shall first be attempted to be resolved through good-faith informal negotiations. If a resolution is not reached within 30 days, the dispute shall be submitted to binding arbitration or the exclusive jurisdiction of the courts of Zimbabwe, as specified in the Governing Law section.",
+            ),
+
+            _buildSectionTitle("16. Contact Information"),
+            _buildBodyText(
+              "In order to resolve a complaint regarding the Services or to receive further information regarding use of the Services, please contact us at:\n\n"
+              "Propsmart Technologies (Private) Limited\n"
+              "Email: support@teseafrica.com\n"
+              "Website: www.teseafrica.com",
             ),
 
             const SizedBox(height: 40),

@@ -151,7 +151,7 @@ class TransactionModel {
           json['transactionRequestPayoutUsername'] as String?,
       recurringReference: json['recurringReference'] as String?,
       paymentBeneficiariesLinked: json['paymentBeneficiariesLinked'] as String?,
-      paymentDynamicLinked: json['paymentDynamicLinked'] as String?,
+      // paymentDynamicLinked: json['paymentDynamicLinked'] as String?,
       bankPercentageCharges: json['bankPercentageCharges'] as int?,
       bankValue: json['bankValue'] as int?,
       bankCharges: (json['bankCharges'] as num).toDouble(),

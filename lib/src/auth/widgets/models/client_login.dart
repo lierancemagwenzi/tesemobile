@@ -304,7 +304,7 @@ class _TeseLoginScreenState extends StateMVC<TeseLoginScreen> {
   }) {
     return TextFormField(
       obscureText: isPassword,
-      style: const TextStyle(color: Colors.white30),
+      style: const TextStyle(color: Colors.white),
       cursorColor: brandGreen,
       onSaved: (value) {
         phone = value!;
@@ -317,7 +317,8 @@ class _TeseLoginScreenState extends StateMVC<TeseLoginScreen> {
         prefixIcon: Icon(icon, color: Colors.white30, size: 22),
         // labelText: label,
         hintText: label,
-        labelStyle: const TextStyle(color: Colors.black54, fontSize: 12),
+        hintStyle: const TextStyle(color: Colors.white, fontSize: 12),
+        labelStyle: const TextStyle(color: Colors.white, fontSize: 12),
         floatingLabelStyle: const TextStyle(
           color: Colors.black54,
           fontSize: 12,
@@ -344,7 +345,7 @@ class _TeseLoginScreenState extends StateMVC<TeseLoginScreen> {
   }) {
     return TextFormField(
       obscureText: hidePassword,
-      style: const TextStyle(color: Colors.white30),
+      style: const TextStyle(color: Colors.white),
       onSaved: (value) {
         password = value!;
       },
@@ -357,7 +358,8 @@ class _TeseLoginScreenState extends StateMVC<TeseLoginScreen> {
         prefixIcon: Icon(icon, color: Colors.white30, size: 22),
         // labelText: label,
         hintText: label,
-        labelStyle: const TextStyle(color: Colors.black54, fontSize: 12),
+        hintStyle: const TextStyle(color: Colors.white, fontSize: 12),
+        labelStyle: const TextStyle(color: Colors.white, fontSize: 12),
         floatingLabelStyle: const TextStyle(
           color: Colors.black54,
           fontSize: 12,
