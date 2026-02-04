@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:smacredit/src/models/UserModel.dart';
 import 'package:smacredit/src/repositories/user_repository.dart';
 
 class PersonalDetailsScreen extends StatelessWidget {
-  const PersonalDetailsScreen({super.key});
+  final User user;
+  const PersonalDetailsScreen({super.key, required this.user});
 
   // Tese Branding Colors
   static const Color teseGreen = Color(
@@ -51,19 +53,19 @@ class PersonalDetailsScreen extends StatelessWidget {
               context,
               icon: Icons.person_outline,
               label: "Full Name",
-              value: "${currentuser.value.user?.fullname}",
+              value: "${user.fullname}",
             ),
             _buildDetailCard(
               context,
               icon: Icons.email_outlined,
               label: "Email Address",
-              value: "${currentuser.value.user?.email}",
+              value: "${user.email}",
             ),
             _buildDetailCard(
               context,
               icon: Icons.phone_outlined,
               label: "Phone Number",
-              value: "Not set",
+              value: "${user.phone}",
             ),
             _buildDetailCard(
               context,
@@ -80,28 +82,28 @@ class PersonalDetailsScreen extends StatelessWidget {
 
             const SizedBox(height: 30),
 
-            // Tese Primary Button
-            SizedBox(
-              width: double.infinity,
-              height: 55,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: teseGreen,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                onPressed: () {
-                  // Update Logic
-                },
-                child: const Text(
-                  "Update Information",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
+            // // Tese Primary Button
+            // SizedBox(
+            //   width: double.infinity,
+            //   height: 55,
+            //   child: ElevatedButton(
+            //     style: ElevatedButton.styleFrom(
+            //       backgroundColor: teseGreen,
+            //       foregroundColor: Colors.white,
+            //       elevation: 0,
+            //       shape: RoundedRectangleBorder(
+            //         borderRadius: BorderRadius.circular(12),
+            //       ),
+            //     ),
+            //     onPressed: () {
+            //       // Update Logic
+            //     },
+            //     child: const Text(
+            //       "Update Information",
+            //       style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            //     ),
+            //   ),
+            // ),
             const SizedBox(height: 20),
           ],
         ),

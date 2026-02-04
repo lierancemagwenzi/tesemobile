@@ -17,7 +17,8 @@ import 'package:smacredit/src/theme/app_theme.dart';
 // --- DASHBOARD WIDGET ---
 
 class ClientDashboardWidget extends StatefulWidget {
-  const ClientDashboardWidget({super.key});
+  final int? index;
+  const ClientDashboardWidget({super.key, this.index});
 
   @override
   _ClientDashboardWidgetState createState() => _ClientDashboardWidgetState();
@@ -29,6 +30,16 @@ class _ClientDashboardWidgetState extends StateMVC<ClientDashboardWidget> {
   int currentIndex = 0;
   _ClientDashboardWidgetState()
     : super(null); // Passing null here since ClientController is external
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+
+    if (widget.index != null) {
+      currentIndex = widget.index!;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

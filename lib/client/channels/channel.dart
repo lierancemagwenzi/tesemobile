@@ -104,24 +104,24 @@ class _ClientChannelPlaylistsWidgetState
                             _con.channel?.coverImageUrl ?? "-",
                           ),
                           // Play Button Overlay
-                          Center(
-                            child: Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.black38,
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: Colors.white,
-                                  width: 2,
-                                ),
-                              ),
-                              child: const Icon(
-                                Icons.play_arrow,
-                                color: Colors.white,
-                                size: 40,
-                              ),
-                            ),
-                          ),
+                          // Center(
+                          //   child: Container(
+                          //     padding: const EdgeInsets.all(12),
+                          //     decoration: BoxDecoration(
+                          //       color: Colors.black38,
+                          //       shape: BoxShape.circle,
+                          //       border: Border.all(
+                          //         color: Colors.white,
+                          //         width: 2,
+                          //       ),
+                          //     ),
+                          //     child: const Icon(
+                          //       Icons.play_arrow,
+                          //       color: Colors.white,
+                          //       size: 40,
+                          //     ),
+                          //   ),
+                          // ),
                           // Bottom Gradient
                           Container(
                             decoration: BoxDecoration(
@@ -308,7 +308,14 @@ class _ClientChannelPlaylistsWidgetState
       child: ElevatedButton(
         onPressed: () {
           if (channel.shouldShowButton['status'] == 'not_subscribed') {
-            _showPurchaseOptions(channel);
+            UtilsHelper.ensureAuth(
+              context,
+              action: "to subscribe to channel",
+              onAuthenticated: () {
+                _showPurchaseOptions(channel);
+              },
+            );
+            // _showPurchaseOptions(channel);
           }
         },
         style: ElevatedButton.styleFrom(

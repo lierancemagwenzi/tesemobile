@@ -1,12 +1,21 @@
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'package:mvc_pattern/mvc_pattern.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:smacredit/client/profile/update_clint_profile.dart';
+import 'package:smacredit/src/auth/controller/LoginController.dart';
+import 'package:smacredit/src/auth/widgets/models/terms_widget2.dart';
 import 'package:smacredit/src/models/UserModel.dart';
 import 'package:smacredit/src/repositories/settings_repository.dart';
 import 'package:smacredit/src/repositories/user_repository.dart';
 import 'package:smacredit/src/theme/app_theme.dart';
 import 'package:smacredit/src/theme/theme_service.dart';
+import 'package:smacredit/src/widgets/CustomOverlay.dart';
 // import 'package:smacredit/src/home/controller/client_controller.dart';
 
 class ClientProfileScreen extends StatefulWidget {
@@ -19,7 +28,61 @@ class ClientProfileScreen extends StatefulWidget {
 class _ClientProfileScreenState extends StateMVC<ClientProfileScreen> {
   bool isNotificationsEnabled = true;
 
-  _ClientProfileScreenState() : super(null); // Replace with your controller
+  late LoginController _con;
+
+  _ClientProfileScreenState() : super(LoginController()) {
+    _con = controller as LoginController;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    _con.getClientAccountInfo();
+  }
+
+  Future<void> _pickFile(bool isLogo) async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+    );
+
+    final Color brandGreen = const Color(0xFF00D285);
+    if (result != null) {
+      File file = File(result.files.single.path!);
+      CroppedFile? croppedFile = await ImageCropper().cropImage(
+        sourcePath: file.path,
+        aspectRatio: CropAspectRatio(ratioX: 1, ratioY: 1),
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: 'Crop Image',
+            toolbarColor: brandGreen,
+            toolbarWidgetColor: Colors.white,
+            activeControlsWidgetColor: brandGreen,
+            initAspectRatio: CropAspectRatioPreset.original,
+            lockAspectRatio: false,
+            aspectRatioPresets: [
+              CropAspectRatioPreset.original,
+              CropAspectRatioPreset.square,
+              CropAspectRatioPreset.ratio4x3,
+            ],
+          ),
+          IOSUiSettings(
+            title: 'Crop Image',
+
+            aspectRatioPresets: [
+              CropAspectRatioPreset.original,
+              CropAspectRatioPreset.square,
+              CropAspectRatioPreset.ratio4x3,
+            ],
+          ),
+        ],
+      );
+
+      if (croppedFile != null) {
+        _con.uploadProfile(File(croppedFile.path), isLogo);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,45 +90,69 @@ class _ClientProfileScreenState extends StateMVC<ClientProfileScreen> {
     final Color textColor = isDark ? Colors.white : Colors.black;
     final Color subTextColor = isDark ? Colors.white70 : Colors.black54;
 
-    bool loggedIn = currentuser.value.user?.email != null;
+    bool loggedIn =
+        currentuser.value.user?.email != null && _con.userInfo != null;
 
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
+    return CustomOverlay(
+      loading: _con.loading,
+      child: Scaffold(
+        key: _con.scaffoldKey,
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        automaticallyImplyLeading: false,
-        elevation: 0,
-        centerTitle: true,
-        title: Text(
-          "Profile",
-          style: TextStyle(
-            color: textColor,
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
+        appBar: AppBar(
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          automaticallyImplyLeading: false,
+          elevation: 0,
+          centerTitle: true,
+          actions: _con.userInfo == null
+              ? null
+              : [
+                  InkWell(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute<void>(
+                          builder: (context) =>
+                              UpdateProfileScreen(user: _con.userInfo!),
+                        ),
+                      ).then((v) {
+                        _con.getClientAccountInfo();
+                      });
+                    },
+
+                    child: Icon(Icons.edit),
+                  ),
+                ],
+          title: Text(
+            "Profile",
+            style: TextStyle(
+              color: textColor,
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ),
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            if (loggedIn) ...[
-              _buildProfileHeader(isDark),
-              const SizedBox(height: 15),
-            ],
+        body: SingleChildScrollView(
+          child: Column(
+            children: [
+              if (loggedIn) ...[
+                _buildProfileHeader(isDark),
+                const SizedBox(height: 15),
+              ],
 
-            if (loggedIn) ...[
-              _buildStatisticsRow(isDark, textColor, subTextColor),
-              const SizedBox(height: 25),
-            ],
-            _buildSettingsList(isDark, textColor, loggedIn),
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 20),
-              child: Text(
-                "App Version: 1.0.3(2)",
-                style: TextStyle(color: subTextColor, fontSize: 12),
+              if (loggedIn) ...[
+                _buildStatisticsRow(isDark, textColor, subTextColor),
+                const SizedBox(height: 25),
+              ],
+              _buildSettingsList(isDark, textColor, loggedIn),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                child: Text(
+                  "App Version: 1.0.3(2)",
+                  style: TextStyle(color: subTextColor, fontSize: 12),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -88,7 +175,7 @@ class _ClientProfileScreenState extends StateMVC<ClientProfileScreen> {
           width: double.infinity,
           decoration: BoxDecoration(color: fallbackBg),
           child: Image.network(
-            "", // Your model's cover field
+            _con.userInfo?.banner ?? "", // Your model's cover field
             fit: BoxFit.cover,
             // Placeholder while loading
             loadingBuilder: (context, child, loadingProgress) {
@@ -126,7 +213,9 @@ class _ClientProfileScreenState extends StateMVC<ClientProfileScreen> {
                 color: Colors.white,
                 size: 20,
               ),
-              onPressed: () {},
+              onPressed: () {
+                _pickFile(false);
+              },
             ),
           ),
         ),
@@ -150,29 +239,35 @@ class _ClientProfileScreenState extends StateMVC<ClientProfileScreen> {
                       ),
                   ],
                 ),
-                child: CircleAvatar(
-                  radius: 50,
-                  backgroundColor: fallbackBg,
-                  child: ClipOval(
-                    child: Image.network(
-                      "_", // Your model's profile image field
-                      fit: BoxFit.cover,
-                      width: 100,
-                      height: 100,
-                      errorBuilder: (context, error, stackTrace) {
-                        // Initial of the user name as a placeholder
-                        return Center(
-                          child: Text(
-                            currentuser.value.user?.name?[0].toUpperCase() ??
-                                "T",
-                            style: TextStyle(
-                              color: brandGreen,
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
+                child: InkWell(
+                  onTap: () {
+                    _pickFile(true);
+                  },
+                  child: CircleAvatar(
+                    radius: 50,
+                    backgroundColor: fallbackBg,
+                    child: ClipOval(
+                      child: Image.network(
+                        _con.userInfo?.selfie ??
+                            "", // Your model's profile image field
+                        fit: BoxFit.cover,
+                        width: 100,
+                        height: 100,
+                        errorBuilder: (context, error, stackTrace) {
+                          // Initial of the user name as a placeholder
+                          return Center(
+                            child: Text(
+                              currentuser.value.user?.name?[0].toUpperCase() ??
+                                  "T",
+                              style: TextStyle(
+                                color: brandGreen,
+                                fontSize: 32,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          ),
-                        );
-                      },
+                          );
+                        },
+                      ),
                     ),
                   ),
                 ),
@@ -199,22 +294,33 @@ class _ClientProfileScreenState extends StateMVC<ClientProfileScreen> {
         ),
 
         // Edit Profile Button
-        Positioned(
-          bottom: -40,
-          right: 20,
-          child: ElevatedButton(
-            onPressed: () {},
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1A1F2B),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              elevation: 0,
-            ),
-            child: const Text("Edit Profile"),
-          ),
-        ),
+        // Positioned(
+        //   bottom: -40,
+        //   right: 20,
+        //   child: ElevatedButton(
+        //     onPressed: () {
+        //       Navigator.push(
+        //         context,
+        //         MaterialPageRoute<void>(
+        //           builder: (context) =>
+        //               UpdateProfileScreen(user: _con.userInfo!),
+        //         ),
+        //       );
+        //     },
+        //     style: ElevatedButton.styleFrom(
+        //       backgroundColor: const Color(0xFF1A1F2B),
+        //       foregroundColor: Colors.white,
+        //       shape: RoundedRectangleBorder(
+        //         borderRadius: BorderRadius.circular(20),
+        //       ),
+        //       elevation: 0,
+        //     ),
+        //     child: Padding(
+        //       padding: const EdgeInsets.all(8.0),
+        //       child: const Text("Edit Profile"),
+        //     ),
+        //   ),
+        // ),
       ],
     );
   }
@@ -313,6 +419,21 @@ class _ClientProfileScreenState extends StateMVC<ClientProfileScreen> {
     );
   }
 
+  void _navigateToTerms() {
+    // Navigates to the TeseTermsScreen you built earlier
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => TeseTermsScreen(
+          shouldAccept: false,
+          onAcceptanceChanged: (bool p1) {},
+          // Pass any arguments needed for your terms screen
+          // e.g., onAccept: () => setState(() => _isTermsAccepted = true)
+        ),
+      ),
+    );
+  }
+
   // 2. NAME & STATS
   Widget _buildStatisticsRow(bool isDark, Color textColor, Color subTextColor) {
     return Padding(
@@ -321,7 +442,7 @@ class _ClientProfileScreenState extends StateMVC<ClientProfileScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            "${currentuser.value.user?.fullname}",
+            "${_con.userInfo?.fullname}",
             style: TextStyle(
               color: textColor,
               fontSize: 22,
@@ -329,7 +450,7 @@ class _ClientProfileScreenState extends StateMVC<ClientProfileScreen> {
             ),
           ),
           Text(
-            "${currentuser.value.user?.email}",
+            "${_con.userInfo?.email}",
             style: TextStyle(color: subTextColor, fontSize: 14),
           ),
           const SizedBox(height: 5),
@@ -392,7 +513,11 @@ class _ClientProfileScreenState extends StateMVC<ClientProfileScreen> {
             Icons.person_outline,
             "Personal Details",
             voidCallback: () {
-              Navigator.pushNamed(context, '/PersonalDetails');
+              Navigator.pushNamed(
+                context,
+                '/PersonalDetails',
+                arguments: _con.userInfo,
+              );
             },
           ),
         if (loggedIn)
@@ -403,16 +528,16 @@ class _ClientProfileScreenState extends StateMVC<ClientProfileScreen> {
               Navigator.pushNamed(context, '/Downloads');
             },
           ),
-        if (loggedIn)
-          _menuItem(
-            Icons.notifications_none_outlined,
-            "Notifications",
-            trailing: Switch(
-              value: isNotificationsEnabled,
-              activeColor: brandGreen,
-              onChanged: (v) => setState(() => isNotificationsEnabled = v),
-            ),
-          ),
+        // if (loggedIn)
+        //   _menuItem(
+        //     Icons.notifications_none_outlined,
+        //     "Notifications",
+        //     trailing: Switch(
+        //       value: isNotificationsEnabled,
+        //       activeColor: brandGreen,
+        //       onChanged: (v) => setState(() => isNotificationsEnabled = v),
+        //     ),
+        //   ),
         _menuItem(
           Icons.wb_sunny_outlined,
           "Dark Mode",
@@ -432,23 +557,67 @@ class _ClientProfileScreenState extends StateMVC<ClientProfileScreen> {
             },
           ),
         ),
+        // if (loggedIn)
+        //   _menuItem(
+        //     Icons.settings_outlined,
+        //     "Accounts Settings",
+        //     voidCallback: () {
+        //       Navigator.pushNamed(context, '/AccountSettings');
+        //     },
+        //   ),
         if (loggedIn)
           _menuItem(
-            Icons.settings_outlined,
-            "Accounts Settings",
+            Icons.receipt_long_outlined,
+            "Transaction History",
             voidCallback: () {
-              Navigator.pushNamed(context, '/AccountSettings');
+              Navigator.pushNamed(context, '/TransactionHistory', arguments: 2);
             },
           ),
         if (loggedIn)
-          _menuItem(Icons.receipt_long_outlined, "Transaction History"),
-        if (loggedIn) _menuItem(Icons.access_time, "Recently Played Media"),
-        if (loggedIn) _menuItem(Icons.shopping_bag_outlined, "Purchased Media"),
+          _menuItem(
+            Icons.access_time,
+            "Recently Played Media",
+            voidCallback: () {
+              Navigator.pushNamed(context, '/Dashboard', arguments: 2);
+            },
+          ),
+        if (loggedIn)
+          _menuItem(
+            Icons.shopping_bag_outlined,
+            "Purchased Media",
+            voidCallback: () {
+              Navigator.pushNamed(context, '/Dashboard', arguments: 2);
+            },
+          ),
 
-        _menuItem(Icons.share_outlined, "Share App"),
-        _menuItem(Icons.shield_outlined, "Privacy Policy"),
-        _menuItem(Icons.description_outlined, "Terms of Service"),
-        _menuItem(Icons.chat_bubble_outline, "Contact Us"),
+        _menuItem(
+          Icons.share_outlined,
+          "Share App",
+          voidCallback: () {
+            shareTeseAfrica(context);
+          },
+        ),
+        _menuItem(
+          Icons.shield_outlined,
+          "Privacy Policy",
+          voidCallback: () {
+            Navigator.pushNamed(context, '/Policy', arguments: 2);
+          },
+        ),
+        _menuItem(
+          Icons.description_outlined,
+          "Terms of Service",
+          voidCallback: () {
+            _navigateToTerms();
+          },
+        ),
+        _menuItem(
+          Icons.chat_bubble_outline,
+          "Contact Us",
+          voidCallback: () {
+            Navigator.pushNamed(context, '/ContactUs', arguments: 2);
+          },
+        ),
         _menuItem(
           !loggedIn ? Icons.login : Icons.logout,
           loggedIn ? "Logout" : "Sign In",
@@ -458,6 +627,30 @@ class _ClientProfileScreenState extends StateMVC<ClientProfileScreen> {
           },
         ),
       ],
+    );
+  }
+
+  void shareTeseAfrica(BuildContext context) async {
+    // Replace these with your actual store links once published
+    const String playStoreUrl =
+        'https://play.google.com/store/apps/details?id=com.propsmart.tese';
+    const String appleStoreUrl =
+        'https://apps.apple.com/app/tese-africa/id000000000';
+
+    // Determine which link to send based on the user's device
+    final String appLink = Platform.isAndroid ? playStoreUrl : appleStoreUrl;
+
+    final String message =
+        'Check out Tese Africa! 🌍 The secure platform for African content creators. '
+        'Download it here: $appLink';
+
+    // Position the share sheet for iPads (required to prevent crashes)
+    final box = context.findRenderObject() as RenderBox?;
+
+    await Share.share(
+      message,
+      subject: 'Join Tese Africa',
+      sharePositionOrigin: box!.localToGlobal(Offset.zero) & box.size,
     );
   }
 

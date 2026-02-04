@@ -189,6 +189,46 @@ Future<bool?> update_password(Map map) async {
   }
 }
 
+Future<User?> update_client_account(Map map) async {
+  print("#update_client_account user");
+  final String url =
+      '${GlobalConfiguration().getValue('api_base_url')}/auth/update-client-account';
+  try {
+    final response = await client
+        .post(
+          Uri.parse(url),
+          headers: {
+            HttpHeaders.contentTypeHeader: 'application/json',
+            HttpHeaders.authorizationHeader:
+                'Bearer ${currentuser.value.token}',
+          },
+          body: jsonEncode(map),
+        )
+        .timeout(Duration(seconds: 60));
+
+    if (response.statusCode == 200) {
+      return User.fromJson(jsonDecode(response.body));
+    } else {
+      return null;
+    }
+  } on TimeoutException catch (e) {
+    if (kDebugMode) {
+      print(e.message);
+    }
+    return null;
+  } on SocketException catch (e) {
+    return null;
+  } on Error catch (e) {
+    if (kDebugMode) {
+      print("error");
+    }
+    if (kDebugMode) {
+      print(e);
+    }
+    return null;
+  }
+}
+
 Future<AccountInfo?> update_bank(Map map) async {
   print("#createbank user");
   final String url =
@@ -317,6 +357,42 @@ Future<AccountInfo?> get_account_info(Map map) async {
     print(response.body);
     if (response.statusCode == 200) {
       AccountInfo userModel = AccountInfo.fromJson(json.decode(response.body));
+      return userModel;
+    } else {
+      return null;
+    }
+  } on TimeoutException catch (e) {
+    print(e.message);
+    return null;
+  } on SocketException catch (e, s) {
+    return null;
+  } on Error catch (e, s) {
+    print("error");
+    print('Caught error: $e');
+    print('Stack trace: $s');
+    return null;
+  }
+}
+
+Future<User?> get_client_account_info(Map map) async {
+  print("#account user");
+  final String url =
+      '${GlobalConfiguration().getValue('api_base_url')}/auth/get-account';
+  try {
+    final response = await client
+        .get(
+          Uri.parse(url),
+          headers: {
+            HttpHeaders.contentTypeHeader: 'application/json',
+            HttpHeaders.authorizationHeader:
+                'Bearer ${currentuser.value.token}',
+          },
+        )
+        .timeout(Duration(seconds: 60));
+
+    print(response.body);
+    if (response.statusCode == 200) {
+      User userModel = User.fromJson(json.decode(response.body));
       return userModel;
     } else {
       return null;

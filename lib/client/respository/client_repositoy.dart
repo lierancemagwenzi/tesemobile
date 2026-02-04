@@ -13,6 +13,7 @@ import 'package:http/http.dart' as http;
 import 'package:smacredit/client/models/media_response.dart';
 import 'package:smacredit/client/models/search_result.dart';
 import 'package:smacredit/client/payments/models/payment_response.dart';
+import 'package:smacredit/client/payments/models/transaction_history_model.dart';
 import 'package:smacredit/src/auth/models/UploadIDModel.dart';
 import 'package:smacredit/src/auth/repository/inteceptor.dart';
 import 'package:smacredit/src/content-creator/models/category_model.dart';
@@ -45,6 +46,37 @@ Future<Stream<Channel?>> get_client_channel(int id) async {
 
         try {
           Channel employerModel = Channel.fromJson(data);
+          return employerModel;
+        } catch (e, s) {
+          print(e);
+          print(s);
+
+          return null;
+        }
+      });
+}
+
+Future<Stream<Playlist?>> get_client_playlist(int id) async {
+  final String url =
+      '${GlobalConfiguration().getValue('api_base_url')}/client/playlist/get/$id';
+  print(url);
+  final client = new http.Client();
+  http.Request request = http.Request('get', Uri.parse(url));
+  if (currentuser.value.token != null) {
+    request.headers['Authorization'] = 'Bearer ${currentuser.value.token}';
+  }
+
+  final streamedRest = await client.send(request);
+
+  return streamedRest.stream
+      .transform(utf8.decoder)
+      .transform(json.decoder)
+      .map((data) => Helper.getData(data as Map<String, dynamic>))
+      .map((data) {
+        print(data);
+
+        try {
+          Playlist employerModel = Playlist.fromJson(data);
           return employerModel;
         } catch (e, s) {
           print(e);
@@ -144,6 +176,33 @@ Future<Stream<Video>> get_playlist_videos(int id) async {
       .expand((data) => (data as List))
       .map((data) {
         Video channel = Video.fromJson(data);
+        return channel;
+      });
+}
+
+Future<Stream<TransactionHistoryModel>> get_client_transactions(int id) async {
+  final String url =
+      '${GlobalConfiguration().getValue('api_base_url')}/client/transactions';
+  if (kDebugMode) {
+    print(url);
+  }
+  http.Request request = http.Request('get', Uri.parse(url));
+
+  if (currentuser.value.token != null) {
+    request.headers['Authorization'] = 'Bearer ${currentuser.value.token}';
+  }
+
+  final streamedRest = await client.send(request);
+
+  return streamedRest.stream
+      .transform(utf8.decoder)
+      .transform(json.decoder)
+      .map((data) => Helper.getData(data))
+      .expand((data) => (data as List))
+      .map((data) {
+        TransactionHistoryModel channel = TransactionHistoryModel.fromJson(
+          data,
+        );
         return channel;
       });
 }
@@ -697,6 +756,106 @@ Future<PaymentResponseWrapper?> make_channel_payment(Map map) async {
   } on Error catch (e) {
     print("error");
     print(e.stackTrace);
+    return null;
+  }
+}
+
+Future<PaymentResponseWrapper?> make_playlist_payment(Map map) async {
+  final String url =
+      '${GlobalConfiguration().getValue('api_base_url')}/buy-playlist';
+
+  try {
+    final response = await client
+        .post(
+          Uri.parse(url),
+          headers: {
+            HttpHeaders.contentTypeHeader: 'application/json',
+            HttpHeaders.authorizationHeader:
+                'Bearer ${currentuser.value.token}',
+          },
+          body: json.encode(map),
+        )
+        .timeout(Duration(seconds: 60));
+
+    print(response.body);
+    if (response.statusCode == 200) {
+      PaymentResponseWrapper userModel = PaymentResponseWrapper.fromJson(
+        json.decode(response.body),
+      );
+
+      return userModel;
+    } else {
+      return null;
+    }
+  } on TimeoutException catch (e) {
+    print(e.message);
+    return null;
+  } on SocketException catch (e) {
+    return null;
+  } on Error catch (e) {
+    print("error");
+    print(e.stackTrace);
+    return null;
+  }
+}
+
+Future<User?> upload_profile(File files, bool isProfile) async {
+  try {
+    var postUri = Uri.parse(
+      isProfile
+          ? "${GlobalConfiguration().getValue('api_base_url')}/auth/update-profile-picture"
+          : "${GlobalConfiguration().getValue('api_base_url')}/auth/update-profile-banner",
+    );
+    http.MultipartRequest request = new http.MultipartRequest("POST", postUri);
+    request.fields['extension'] = files.path.split('.').last;
+    // request.fields['user_id'] = currentuser.value.id.toString();
+    var files2 = [];
+
+    File element = files;
+    final mimeType = lookupMimeType(element.path); // 'image/jpeg'
+    print(mimeType);
+    http.MultipartFile multipartFile = await http.MultipartFile.fromPath(
+      'selfieImage',
+      element.path,
+      // contentType: MediaType.parse(mimeType!),
+    );
+    request.files.add(multipartFile);
+
+    request.fields['uploads'] = jsonEncode(files2);
+
+    Map<String, String> headers = {
+      // 💡 Authorization header for Bearer tokens
+      'Authorization': 'Bearer ${currentuser.value.token}',
+    };
+
+    // 4. Assign the headers to the request
+    request.headers.addAll(headers);
+
+    // http.StreamedResponse response =
+
+    // http.StreamedResponse response = await request.send();
+
+    Future<http.StreamedResponse> responseFuture = request.send();
+    http.StreamedResponse response = await responseFuture.timeout(
+      Duration(seconds: 60),
+      onTimeout: () {
+        // This block is executed if the timeout occurs
+        throw TimeoutException('Request timed out after  seconds.');
+      },
+    );
+    var responseB = await http.Response.fromStream(response);
+
+    print(responseB.body);
+    if (response.statusCode == 200) {
+      User uploadIdModel = User.fromJson(jsonDecode(responseB.body));
+
+      return uploadIdModel;
+
+      // Navigator.pop(scaffoldKey.currentContext!,'Document uploaded!');
+    } else {
+      return null;
+    }
+  } catch (e) {
     return null;
   }
 }

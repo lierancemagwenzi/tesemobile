@@ -24,7 +24,7 @@ ValueNotifier<UserModel> currentuser = ValueNotifier(UserModel());
 
 ValueNotifier<String> current_registration_email = ValueNotifier('');
 
-bool isV1=true;
+bool isV1=false;
 
 ValueNotifier<IdDetails?> id_details = ValueNotifier(null);
 bool initialized = false;

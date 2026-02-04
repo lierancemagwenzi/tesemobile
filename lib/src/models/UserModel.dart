@@ -125,7 +125,7 @@ class User {
   final String? description;
 
   final String? fireBaseToken;
-
+  final String? banner;
   User({
     this.name,
     this.lastname,
@@ -157,6 +157,7 @@ class User {
     this.videoCount,
     this.description,
     this.fireBaseToken,
+    this.banner,
   });
 
   // --- Factory Constructor for JSON Deserialization (FROM JSON) ---
@@ -194,6 +195,7 @@ class User {
       nationalIdentification: json['national_identification'] as String?,
       title: json['title'] as String?,
       selfie: json['selfie'] as String?,
+      banner: json['banner'] as String?,
       gender: json['gender'] as String?,
       nationalIdFront: json['national_id_front'] as String?,
       nationalIdBack: json['national_id_back'] as String?,

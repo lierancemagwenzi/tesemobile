@@ -1,7 +1,7 @@
 {
   "base_url": "http://192.168.0.210:8003/storage/",
   "server_api_base_url": "http://178.63.147.134:8005/api",
-  "api_base_url": "http://dev.tese.africa:8005/api",
   "api_base_url": "https://api.tese.africa/api",
-    "api_base_url": "http://192.168.0.97:8005/api"
+  "api_base_url": "http://192.168.0.97:8005/api",
+  "api_base_url": "http://dev.tese.africa:8005/api"
 }

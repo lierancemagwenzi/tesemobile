@@ -8,6 +8,7 @@ import 'package:smacredit/client/models/dashboard_model.dart';
 import 'package:smacredit/client/models/media_response.dart';
 import 'package:smacredit/client/models/search_result.dart';
 import 'package:smacredit/client/payments/models/payment_response.dart';
+import 'package:smacredit/client/payments/models/transaction_history_model.dart';
 import 'package:smacredit/client/respository/client_repositoy.dart';
 import 'package:smacredit/src/auth/models/UploadIDModel.dart';
 import 'package:smacredit/src/content-creator/models/category_model.dart';
@@ -32,6 +33,8 @@ class ClientUserController extends ControllerMVC {
   List<Playlist> playlists = [];
   List<Channel> channels = [];
   List<Video> videos = [];
+List<TransactionHistoryModel> transactions = [];
+  Playlist? playlist;
 
   List<Category> the_categories = [];
 
@@ -129,6 +132,37 @@ class ClientUserController extends ControllerMVC {
     );
   }
 
+
+    Future<void> listenForPlaylist(int id) async {
+    setState(() {
+      loading = true;
+      loadingStus = LoadingStus.loading;
+    });
+    final Stream<Playlist?> stream = await get_client_playlist(id);
+    stream.listen(
+      (Playlist? notificationModel) {
+        setState(() {
+          playlist = notificationModel;
+        });
+      },
+      onError: (a) {
+        setState(() {
+          loading = false;
+          loadingStus = LoadingStus.failed;
+        });
+        if (kDebugMode) {
+          print(a);
+        }
+      },
+      onDone: () {
+        setState(() {
+          loading = false;
+          loadingStus = LoadingStus.loaded;
+        });
+      },
+    );
+  }
+
   Future<void> listenForPlaylistVideos(int id) async {
     setState(() {
       loading = true;
@@ -139,6 +173,34 @@ class ClientUserController extends ControllerMVC {
       (Video? notificationModel) {
         if (notificationModel != null) {
           videos.add(notificationModel);
+        }
+      },
+      onError: (a) {
+        setState(() {
+          loading = false;
+        });
+        if (kDebugMode) {
+          print(a);
+        }
+      },
+      onDone: () {
+        setState(() {
+          loading = false;
+        });
+      },
+    );
+  }
+
+    Future<void> listenForTransactions() async {
+    setState(() {
+      loading = true;
+      videos.clear();
+    });
+    final Stream<TransactionHistoryModel?> stream = await get_client_transactions(1);
+    stream.listen(
+      (TransactionHistoryModel? notificationModel) {
+        if (notificationModel != null) {
+          transactions.add(notificationModel);
         }
       },
       onError: (a) {
@@ -550,6 +612,21 @@ class ClientUserController extends ControllerMVC {
 
     return res;
   }
+
+    Future<PaymentResponseWrapper?> buyPlaylist(Map map) async {
+    setState(() {
+      loading = true;
+    });
+
+    PaymentResponseWrapper? res = await make_playlist_payment(map);
+    setState(() {
+      loading = false;
+    });
+
+    return res;
+  }
+
+  
 }
 
 enum LoadingStus { loading, loaded, failed, pending }

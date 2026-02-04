@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide User;
 import 'package:flutter_liveness_detection_randomized_plugin/index.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
@@ -23,6 +23,7 @@ import 'package:mvc_pattern/mvc_pattern.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:http_parser/http_parser.dart';
+import 'package:smacredit/client/respository/client_repositoy.dart';
 import 'package:smacredit/src/auth/models/ExtractIDModel.dart';
 import 'package:smacredit/src/auth/models/UploadIDModel.dart';
 import 'package:smacredit/src/auth/models/VerifyID.dart';
@@ -52,6 +53,8 @@ class LoginController extends ControllerMVC {
   }
 
   final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
+
+   User? userInfo;
 
   Future<void> handleGoogleSignIn() async {
     try {
@@ -143,7 +146,45 @@ class LoginController extends ControllerMVC {
       },
     );
   }
+  void getClientAccountInfo() {
+    setState(() {
+      loading = true;
+    });
+    get_client_account_info({}).then((value) async {
+      if (value != null) {
+        setState(() {
+          userInfo = value;
+          loading = false;
+        });
+      } else {
+        setState(() {
+          loading = false;
+        });
+     
+      }
+    });
+  }
 
+  Future<void> uploadProfile(File file, bool isProfile) async {
+    setState(() {
+      loading = true;
+    });
+    upload_profile(file, isProfile).then((v) {
+      setState(() {
+        loading = false;
+      });
+      if (v != null) {
+        setState(() {
+          userInfo = v;
+        });
+      } else {
+        CustomMessageHandler().showErrorSnakeBar(
+          scaffoldKey.currentContext!,
+          "Something went wrong.Try again",
+        );
+      }
+    });
+  }
   void getAccountInfo() {
     setState(() {
       loading = true;
@@ -173,6 +214,27 @@ class LoginController extends ControllerMVC {
 
     try {
       bool? response = await update_password(map);
+      setState(() {
+        loading = false;
+      });
+      return response;
+    } catch (e) {
+      setState(() {
+        loading = false;
+      });
+      return null;
+    }
+  }
+
+
+
+  Future<User?> updateClientAccount(Map map) async {
+    setState(() {
+      loading = true;
+    });
+
+    try {
+      User? response = await update_client_account(map);
       setState(() {
         loading = false;
       });

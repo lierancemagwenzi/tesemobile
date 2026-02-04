@@ -16,10 +16,12 @@ import 'package:smacredit/client/events/past_events.dart';
 import 'package:smacredit/client/events/upcoming_events.dart';
 import 'package:smacredit/client/home/dashboad.dart';
 import 'package:smacredit/client/models/dashboard_model.dart';
+import 'package:smacredit/client/payments/transaction_history_widget.dart';
 import 'package:smacredit/client/payments/visa_matercard_payment.dart';
 import 'package:smacredit/client/payments/widgets/ecocash_payment.dart';
 import 'package:smacredit/client/players/video_player_widget.dart';
 import 'package:smacredit/client/profile/account_settings.dart';
+import 'package:smacredit/client/profile/contact-us.dart';
 import 'package:smacredit/client/profile/personal_details.dart';
 import 'package:smacredit/src/addresses/AddAddressWidget.dart';
 import 'package:smacredit/src/addresses/AddNextOfKinWidget.dart';
@@ -175,7 +177,9 @@ class RouteGenerator {
         );
 
       case '/PersonalDetails':
-        return CupertinoPageRoute(builder: (_) => PersonalDetailsScreen());
+        return CupertinoPageRoute(
+          builder: (_) => PersonalDetailsScreen(user: args as user.User),
+        );
 
       case '/AccountSettings':
         return CupertinoPageRoute(builder: (_) => AccountSettingsScreen());
@@ -265,7 +269,7 @@ class RouteGenerator {
         return CupertinoPageRoute(
           builder: (_) => isV1
               ? HomeWidget(index: args != null ? args as int : null)
-              : ClientDashboardWidget(),
+              : ClientDashboardWidget(index: args != null ? args as int : null),
         );
       case '/CreatePaymentLink':
         return CupertinoPageRoute(builder: (_) => CreatePaymentLinkScreen());
@@ -476,6 +480,19 @@ class RouteGenerator {
         return MaterialPageRoute(
           builder: (BuildContext context) {
             return TesePrivacyPolicyScreen();
+          },
+        );
+      case "/TransactionHistory":
+        return MaterialPageRoute(
+          builder: (BuildContext context) {
+            return TransactionHistoryScreen();
+          },
+        );
+
+      case "/ContactUs":
+        return MaterialPageRoute(
+          builder: (BuildContext context) {
+            return ContactUsScreen();
           },
         );
 

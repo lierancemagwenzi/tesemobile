@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mvc_pattern/mvc_pattern.dart';
@@ -7,6 +8,8 @@ import 'package:smacredit/client/controller/client_user_controller.dart';
 import 'package:smacredit/client/payments/models/payment.dart';
 import 'package:smacredit/client/payments/models/payment_response.dart';
 import 'package:smacredit/client/payments/widgets/payment_form.dart';
+import 'package:smacredit/client/payments/widgets/payment_widget.dart';
+import 'package:smacredit/client/payments/widgets/qr_code_payment.dart';
 import 'package:smacredit/src/content-creator/models/channel_model.dart';
 import 'package:smacredit/src/helpers/Message.dart';
 import 'package:smacredit/src/repositories/user_repository.dart';
@@ -37,7 +40,7 @@ class _PlayListVideosWidgetState extends StateMVC<PlayListVideosWidget> {
   @override
   void initState() {
     super.initState();
-
+    _con.listenForPlaylist(widget.playlist.id);
     _con.listenForPlaylistVideos(widget.playlist.id);
     _con.listenForChannel(widget.playlist.channelId ?? 0);
   }
@@ -74,45 +77,92 @@ class _PlayListVideosWidgetState extends StateMVC<PlayListVideosWidget> {
             // const SizedBox(width: 16),
           ],
         ),
-        body: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 1. HEADER SECTION
-              _buildHeaderCard(cardColor, textColor, subTextColor, isDark),
+        body: _con.playlist == null
+            ? SizedBox()
+            : SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 1. HEADER SECTION
+                    _buildHeaderCard(
+                      cardColor,
+                      textColor,
+                      subTextColor,
+                      isDark,
+                    ),
 
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 20,
-                ),
-                child: Text(
-                  'Videos',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: textColor,
-                  ),
-                ),
-              ),
-
-              // 2. VIDEO LIST
-              _con.videos.isEmpty
-                  ? TeseEmptyWidget()
-                  : ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      itemCount: _con.videos.length,
-                      itemBuilder: (context, index) => _buildVideoListItem(
-                        textColor,
-                        subTextColor,
-                        isDark,
-                        _con.videos[index],
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 20,
+                      ),
+                      child: Text(
+                        'Videos',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: textColor,
+                        ),
                       ),
                     ),
-            ],
+
+                    // 2. VIDEO LIST
+                    _con.videos.isEmpty
+                        ? TeseEmptyWidget()
+                        : ListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            itemCount: _con.videos.length,
+                            itemBuilder: (context, index) =>
+                                _buildVideoListItem(
+                                  textColor,
+                                  subTextColor,
+                                  isDark,
+                                  _con.videos[index],
+                                ),
+                          ),
+                  ],
+                ),
+              ),
+      ),
+    );
+  }
+
+  Widget _buildSubscribeButton() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: _con.playlist?.shouldShowButton['positive'] == true
+              ? [const Color.fromRGBO(76, 175, 80, 1), Colors.green]
+              : [Color(0xFFFF416C), Color(0xFFFF4B2B)],
+        ),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: ElevatedButton(
+        onPressed: () {
+          if (_con.playlist?.shouldShowButton['status'] == 'not_subscribed') {
+            UtilsHelper.ensureAuth(
+              context,
+              action: "to subscribe to playlist",
+              onAuthenticated: () {
+                _showPurchaseOptions(_con.playlist!);
+              },
+            );
+            // _showPurchaseOptions(channel);
+          }
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
           ),
+        ),
+        child: Text(
+          _con.playlist?.shouldShowButton['message'],
+          style: TextStyle(color: Colors.white),
         ),
       ),
     );
@@ -194,6 +244,8 @@ class _PlayListVideosWidgetState extends StateMVC<PlayListVideosWidget> {
                   '${widget.playlist.description}',
                   style: TextStyle(color: subTextColor, fontSize: 15),
                 ),
+                const SizedBox(height: 10),
+                _buildSubscribeButton(),
                 const SizedBox(height: 16),
                 // Creator Attribution Row
                 Row(
@@ -459,7 +511,54 @@ class _PlayListVideosWidgetState extends StateMVC<PlayListVideosWidget> {
     return true;
   }
 
-  void _showPurchaseOptions(Video video) async {
+  handleWebForm(PaymentResponseWrapper payment) {
+    if (kDebugMode) {
+      print('got_here');
+      print(
+        payment.response?.paymentInitiationResponse?.paymentRedirectUrl ?? '',
+      );
+    }
+    Navigator.push(
+      context,
+      MaterialPageRoute<void>(
+        builder: (context) => TesePaymentWebView(
+          initialUrl:
+              payment.response?.paymentInitiationResponse?.paymentRedirectUrl ??
+              '',
+          successUrl: '',
+          onPaymentSuccess: () {},
+        ),
+      ),
+    ).then((v) {
+      _con.listenForPlaylist(widget.playlist.id);
+      _con.listenForPlaylistVideos(widget.playlist.id);
+    });
+  }
+
+  handleQRCode(PaymentResponseWrapper payment) {
+    if (kDebugMode) {
+      print('got_here');
+      print(
+        payment.response?.paymentInitiationResponse?.paymentRedirectUrl ?? '',
+      );
+    }
+    Navigator.push(
+      context,
+      MaterialPageRoute<void>(
+        builder: (context) => TesePaymentQR(
+          paymentData:
+              payment.response?.paymentInitiationResponse?.paymentToken ?? '',
+          amount:
+              '${payment.purchase?.currency ?? ''}${payment.purchase?.amount?.toStringAsFixed(2) ?? '0.00'}',
+        ),
+      ),
+    ).then((v) {
+      _con.listenForPlaylist(widget.playlist.id);
+      _con.listenForPlaylistVideos(widget.playlist.id);
+    });
+  }
+
+  void _showPurchaseOptions(Playlist video) async {
     final PaymentSelection? result =
         await showModalBottomSheet<PaymentSelection>(
           context: context,
@@ -471,22 +570,26 @@ class _PlayListVideosWidgetState extends StateMVC<PlayListVideosWidget> {
         );
 
     if (result != null) {
-      print("Selected: ${result.method}");
+      if (kDebugMode) {
+        print("Selected: ${result.method}");
+      }
       if (result.ecoCashNumber != null) {
-        print("EcoCash Number: ${result.ecoCashNumber}");
+        if (kDebugMode) {
+          print("EcoCash Number: ${result.ecoCashNumber}");
+        }
       }
 
       Map map = {
-        "wallet": "Visa",
+        "wallet": result.method,
         "amount": video.price ?? 1,
         "currency": "USD",
-        "paymentDescription": "Video Purchase payment",
+        "paymentDescription": "Playlist  subscription payment",
         "payer": "${currentuser.value.user?.fullname}",
         "user_id": currentuser.value.user?.id,
-        "video_id": video.id,
+        "playlist_id": video.id,
         "payerMobile": result.ecoCashNumber ?? "",
       };
-      PaymentResponseWrapper? res = await _con.buyVideo(map);
+      PaymentResponseWrapper? res = await _con.buyPlaylist(map);
 
       if (res != null) {
         if (result.method.toLowerCase() == 'visa' ||
@@ -497,6 +600,7 @@ class _PlayListVideosWidgetState extends StateMVC<PlayListVideosWidget> {
             arguments:
                 res.response?.paymentInitiationResponse?.paymentCode ?? "",
           ).then((e) {
+            _con.listenForPlaylist(widget.playlist.id);
             _con.listenForPlaylistVideos(widget.playlist.id);
           });
         } else if (result.method.toLowerCase() == 'ecocash') {
@@ -505,8 +609,13 @@ class _PlayListVideosWidgetState extends StateMVC<PlayListVideosWidget> {
             '/PaymentWaitingScreen',
             arguments: result.ecoCashNumber,
           ).then((e) {
+            _con.listenForPlaylist(widget.playlist.id);
             _con.listenForPlaylistVideos(widget.playlist.id);
           });
+        } else if (result.method.toLowerCase() == 'zimswitch') {
+          handleWebForm(res);
+        } else if (result.method.toLowerCase() == 'innbucks') {
+          handleQRCode(res);
         }
       } else {
         CustomMessageHandler().showErrorSnakeBar(

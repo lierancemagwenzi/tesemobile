@@ -161,6 +161,26 @@ class Playlist {
     this.videoCount,
   });
 
+  Map get shouldShowButton {
+    if (type == 'paid') {
+      if (hasPurchased == 1) {
+        return {
+          'status': "subscribed",
+          'message': 'Subscribed',
+          'positive': true,
+        };
+      }
+
+      return {
+        'status': "not_subscribed",
+        'message': 'Subscribe',
+        'positive': false,
+      };
+    }
+
+    return {'status': "free", 'message': 'Free Playlist', 'positive': true};
+  }
+
   factory Playlist.fromJson(Map<String, dynamic> json) {
     return Playlist(
       id: json['id'],

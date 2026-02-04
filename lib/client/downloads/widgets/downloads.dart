@@ -51,36 +51,39 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
         leading: const BackButton(),
         elevation: 0,
       ),
-      body: Column(
-        children: [
-          // 1. STORAGE INDICATOR
-          _buildStorageCard(isDark),
+      body: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Column(
+          children: [
+            // 1. STORAGE INDICATOR
+            _buildStorageCard(isDark),
 
-          // 2. DOWNLOADED VIDEOS LIST
-          Expanded(
-            child: FutureBuilder<List<Map<String, dynamic>>>(
-              future: DownloadDB.getCompletedDownloads(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Center(
-                    child: Text(
-                      "Completed videos will appear here. Check you downloads on the system notifications",
-                    ),
+            // 2. DOWNLOADED VIDEOS LIST
+            Expanded(
+              child: FutureBuilder<List<Map<String, dynamic>>>(
+                future: DownloadDB.getCompletedDownloads(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return const Center(
+                      child: Text(
+                        "Completed videos will appear here. Check you downloads on the system notifications",
+                      ),
+                    );
+                  }
+
+                  return ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: snapshot.data!.length,
+                    itemBuilder: (context, index) {
+                      final item = snapshot.data![index];
+                      return _buildDownloadItem(item, cardColor, isDark);
+                    },
                   );
-                }
-
-                return ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: snapshot.data!.length,
-                  itemBuilder: (context, index) {
-                    final item = snapshot.data![index];
-                    return _buildDownloadItem(item, cardColor, isDark);
-                  },
-                );
-              },
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
