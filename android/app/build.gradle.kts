@@ -76,11 +76,12 @@ android {
 
     packaging {
         jniLibs {
-            keepDebugSymbols.add("**/*.so")
-
-            // If it still fails, try adding this to avoid conflicts
             pickFirsts.add("**/*.so")
-            doNotStrip.add("**/*.so")
+//            keepDebugSymbols.add("**/*.so")
+//
+//            // If it still fails, try adding this to avoid conflicts
+//            pickFirsts.add("**/*.so")
+//            doNotStrip.add("**/*.so")
         }
     }
 }

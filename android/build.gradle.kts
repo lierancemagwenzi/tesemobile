@@ -1,7 +1,8 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 allprojects {
     tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
-        kotlinOptions {
-            jvmTarget = "17"
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_17) // Use JVM_11 or JVM_17 depending on your project
         }
     }
 }
