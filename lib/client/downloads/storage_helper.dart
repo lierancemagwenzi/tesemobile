@@ -20,7 +20,7 @@ class StorageHelper {
 
     // 3. Loop through and add up the sizes of the actual files
     for (var video in savedVideos) {
-      final String filePath = "${directory!.path}/${video['fileName']}";
+      final String filePath = "${directory!.path}/${video.fileName}";
       final file = File(filePath);
 
       if (await file.exists()) {

@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 2.0.4+4
+version: 3.0.15+15
 
 environment:
   sdk: ^3.9.2
@@ -45,6 +45,9 @@ dependencies:
   storage_space: ^1.0.1
   cloud_firestore: ^6.0.0
   firebase_auth: ^6.1.2
+  background_transfer: ^1.2.2
+  background_downloader: ^9.5.4
+  lucide_icons_flutter: ^3.1.11
 
 
   sqflite: 2.4.1
@@ -75,7 +78,6 @@ dependencies:
 #    path: packages/flutter_doc_scanner-0.0.8
   google_sign_in: ^7.1.1
   dio: ^5.4.0
-
   retry:
   country_code_picker: ^3.1.0
   flutter_datetime_picker_plus: ^2.1.0
@@ -91,7 +93,13 @@ dependencies:
   file_picker: ^8.1.0
   flash: ^3.1.1
   badges: ^3.1.2
-
+  just_audio: ^0.10.5
+  audio_service: ^0.18.12
+  ant_media_flutter: ^1.5.4
+  flutter_webrtc: 1.2.1
+  audio_video_progress_bar:
+  sign_in_with_apple: ^6.1.0
+  flutter_secure_storage: ^9.0.0
 
   # m7_livelyness_detection: 0.0.6+4
   mvc_pattern:
@@ -117,6 +125,7 @@ dependency_overrides:
   gallery_saver_plus: ^3.2.9
   webview_flutter: ^4.10.0
   device_info_plus: ^11.4.0
+  permission_handler: ^12.0.1
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is

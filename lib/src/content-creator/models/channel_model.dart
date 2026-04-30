@@ -1,5 +1,10 @@
 import 'dart:convert';
 
+import 'package:smacredit/client/models/dashboard_model.dart';
+import 'package:smacredit/src/content-creator/models/content_rating.dart';
+import 'package:smacredit/src/content-creator/models/tag_model.dart';
+import 'package:smacredit/src/models/UserModel.dart';
+
 // --- VIDEO MODEL ---
 class Video {
   final int id; // ID kept non-nullable as it's the primary key
@@ -33,11 +38,18 @@ class Video {
   final int? hasPurchased;
 
   final bool? hasAccess;
+  final bool? isAudio;
   final String? playStatus;
+  final String? playbackToken;
 
   final int? likeCount;
   final int? viewCount;
   final int? downloadCount;
+  final ContentRating? rating;
+  final Playlist? playlist;
+  final Channel? channel;
+  final User? artist;
+  final List<TagModel> tags;
   Video({
     required this.id,
     this.title,
@@ -60,6 +72,7 @@ class Video {
     this.jobStatus,
     this.jobId,
     this.output,
+    this.rating,
     this.trailer,
     this.trailerDuration,
     this.visibility,
@@ -70,6 +83,12 @@ class Video {
     this.likeCount,
     this.viewCount,
     this.downloadCount,
+    this.isAudio,
+    this.playlist,
+    this.channel,
+    this.artist,
+    this.playbackToken,
+    this.tags = const [],
   });
 
   factory Video.fromJson(Map<String, dynamic> json) {
@@ -80,18 +99,31 @@ class Video {
       slug: json['slug'],
       output: json['output'],
       jobStatus: json['job_status'],
-      jobId: json['job_id'],
+      // jobId: json['job_id'],
       contentRating: json['content_rating'],
       accessType: json['access_type'],
       price: double.tryParse(json['price']?.toString() ?? ''),
       currency: json['currency'],
       sourceFileUrl: json['source_file_url'],
       thumbnailUrl: json['thumbnail_url'],
+      rating: json['video_content_rating'] != null
+          ? ContentRating.fromJson(json['video_content_rating'])
+          : null,
+
+      playlist: json['playlist'] != null
+          ? Playlist.fromJson(json['playlist'])
+          : null,
+
+      channel: json['channel'] != null
+          ? Channel.fromJson(json['channel'])
+          : null,
+      artist: json['artist'] != null ? User.fromJson(json['artist']) : null,
       durationSeconds: json['duration_seconds'],
       fileSizeBytes: json['file_size_bytes'],
       resolutionMax: json['resolution_max'],
       status: json['status'],
       hasPurchased: json['hasPurchased'],
+      isAudio: json['is_audio'],
       hasAccess: json['has_access'] != null && json['has_access'] == 1,
       playStatus: json['play_status'],
       likeCount: json['like_count'],
@@ -108,6 +140,10 @@ class Video {
       trailer: json['trailer'],
       trailerDuration: json['trailer_duration'],
       visibility: json['visibility'],
+      playbackToken: json['playback_token'],
+      tags: json['tags'] != null
+          ? (json['tags'] as List).map((t) => TagModel.fromJson(t)).toList()
+          : [],
     );
   }
 
@@ -144,6 +180,13 @@ class Playlist {
   final int? channelId;
   final int? videoCount;
   final int? hasPurchased;
+  final int monthly_earnings;
+  final int monthly_sales;
+  final int total_earnings;
+  final int total_sales;
+  final bool? isAudio;
+  final bool? isAlbum;
+  final Channel? channel;
   Playlist({
     required this.id,
     this.title,
@@ -158,7 +201,14 @@ class Playlist {
     this.updatedAt,
     this.channelId,
     this.hasPurchased,
+    this.isAudio,
+    this.isAlbum,
     this.videoCount,
+    this.total_earnings = 0,
+    this.monthly_earnings = 0,
+    this.monthly_sales = 0,
+    this.total_sales = 0,
+    this.channel,
   });
 
   Map get shouldShowButton {
@@ -187,10 +237,16 @@ class Playlist {
       title: json['title'],
       description: json['description'],
       type: json['type'],
+      isAudio: json['is_audio'],
+      isAlbum: json['is_album'],
       price: double.tryParse(json['price']?.toString() ?? ''),
       currency: json['currency'],
       thumbnailUrl: json['thumbnail_url'],
       isPublic: json['is_public'],
+      total_earnings: json['total_earnings'] ?? 0,
+      monthly_earnings: json['monthly_earnings'] ?? 0,
+      monthly_sales: json['monthly_sales'] ?? 0,
+      total_sales: json['total_sales'] ?? 0,
       videoCount: json['videoCount'],
       hasPurchased: json['hasPurchased'],
       createdAt: json['createdAt'] != null
@@ -200,6 +256,9 @@ class Playlist {
           ? DateTime.tryParse(json['updatedAt'])
           : null,
       channelId: json['channel_id'],
+      channel: json['channel'] != null
+          ? Channel.fromJson(json['channel'])
+          : null,
       videos: json['videos'] != null
           ? (json['videos'] as List).map((i) => Video.fromJson(i)).toList()
           : [],
@@ -225,14 +284,21 @@ class Channel {
   final DateTime? createdAt;
   final DateTime? updatedAt;
   final List<Playlist>? playlists;
-
+  final List<Video>? videos;
+  final User? creator;
+  final Category? category;
   final int? hasPurchased;
+  final int? hasLiked;
   final int? playlistCount;
   final int? videoCount;
-
+  final int monthly_earnings;
+  final int monthly_sales;
+  final int total_earnings;
+  final int total_sales;
   Channel({
     required this.id,
     this.userId,
+    this.hasLiked,
     this.name,
     this.slug,
     this.description,
@@ -249,7 +315,14 @@ class Channel {
     this.playlists,
     this.hasPurchased,
     this.playlistCount,
+    this.creator,
+    this.category,
+    this.videos,
     this.videoCount,
+    this.total_earnings = 0,
+    this.monthly_earnings = 0,
+    this.monthly_sales = 0,
+    this.total_sales = 0,
   });
 
   factory Channel.fromJson(Map<String, dynamic> json) {
@@ -260,6 +333,7 @@ class Channel {
       slug: json['slug'],
       description: json['description'],
       hasPurchased: json['hasPurchased'],
+      hasLiked: json['hasLiked'],
       playlistCount: json['playlistCount'],
       videoCount: json['videoCount'],
       coverImageUrl: json['cover_image_url'],
@@ -270,6 +344,10 @@ class Channel {
       ),
       subscriptionCurrency: json['subscription_currency'],
       subscriptionPeriod: json['subscription_period'],
+      total_earnings: json['total_earnings'] ?? 0,
+      monthly_earnings: json['monthly_earnings'] ?? 0,
+      monthly_sales: json['monthly_sales'] ?? 0,
+      total_sales: json['total_sales'] ?? 0,
       isPublic: json['is_public'],
       status: json['status'],
       createdAt: json['createdAt'] != null
@@ -283,7 +361,19 @@ class Channel {
                 .map((i) => Playlist.fromJson(i))
                 .toList()
           : [],
+
+      creator: json['user'] != null ? User.fromJson(json['user']) : null,
+      category: json['category'] != null
+          ? Category.fromJson(json['category'])
+          : null,
+      videos: json['the_videos'] != null
+          ? (json['the_videos'] as List).map((i) => Video.fromJson(i)).toList()
+          : [],
     );
+  }
+
+  String get shortname {
+    return name?.replaceAll(" ", "_") ?? "";
   }
 
   Map get shouldShowButton {
@@ -316,5 +406,13 @@ class Channel {
     } else {
       return true;
     }
+  }
+
+  bool get liked {
+    if (hasLiked == 1) {
+      return true;
+    }
+
+    return false;
   }
 }

@@ -110,7 +110,7 @@ class _VerifyDetailsWidgetState extends StateMVC<VerifyDetailsWidget> {
                             title: title,
                             dob: dob,
                             nationalIdentification: idNumber,
-
+                            country: widget.registrationDocumentsModel.country,
                             province: 'Harare',
                             tradingAddress: tradingAddress,
                             tradingName: '${firstName}${lastName}',
@@ -183,7 +183,7 @@ class _VerifyDetailsWidgetState extends StateMVC<VerifyDetailsWidget> {
       loading: _con.loading,
       child: Scaffold(
         key: _con.scaffoldKey,
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.black,
         bottomNavigationBar: buttons(),
         appBar: AppBar(
           backgroundColor: Colors.white,

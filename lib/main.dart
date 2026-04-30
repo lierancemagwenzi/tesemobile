@@ -1,8 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:audio_service/audio_service.dart';
+import 'package:background_downloader/background_downloader.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -11,7 +14,10 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:form_builder_validators/localization/l10n.dart';
 import 'package:global_configuration/global_configuration.dart';
 import 'package:smacredit/client/downloads/service.dart';
+import 'package:smacredit/client/players/audio_handler.dart';
+import 'package:smacredit/client/players/global_audio_player.dart';
 import 'package:smacredit/src/Route_generator.dart';
+import 'package:smacredit/src/content-creator/controller/upload_manager.dart';
 import 'package:smacredit/src/models/Setting.dart';
 
 import 'package:smacredit/src/repositories/settings_repository.dart'
@@ -25,13 +31,22 @@ import 'package:smacredit/src/repositories/user_repository.dart';
 import 'package:smacredit/src/theme/app_theme.dart';
 import 'package:smacredit/src/theme/theme_service.dart';
 
+late MyAudioHandler teseAudioHandler;
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
   await FlutterDownloader.initialize(
     debug: true, // set to false in production
     ignoreSsl: true, // option to ignore SSL (use with caution)
   );
-
+  teseAudioHandler = await AudioService.init(
+    builder: () => MyAudioHandler(),
+    config: const AudioServiceConfig(
+      androidNotificationChannelId: 'com.tese.africa.audio',
+      androidNotificationChannelName: 'Tese Audio Playback',
+    ),
+  );
   DownloadService.init();
   // Load saved theme
   ThemeMode savedMode = await ThemeService().loadThemeMode();
@@ -42,7 +57,65 @@ void main() async {
   settingRepo.initSettings();
   LoadUser();
   init();
+
+  // uploadManager.initialize();
+  await FileDownloader().trackTasks();
+
+  // 2. Processes events that happened while app was dead
+  await FileDownloader().resumeFromBackground();
+  uploadListener();
+  await TeseUploadManager.instance.loadHistory();
   initializeDateFormatting().then((_) => runApp(TeseApp()));
+}
+
+uploadListener() {
+  FileDownloader().updates.listen((update) async {
+    TeseUploadManager.instance.handleUpdate(update);
+    if (update is TaskStatusUpdate) {
+      if (update.status == TaskStatus.complete) {
+        if (kDebugMode) {
+          print("Upload finished completely!");
+        }
+
+        String path = await update.task.filePath();
+        final file = File(path);
+        if (await file.exists()) {
+          await file.delete();
+          if (kDebugMode) {
+            print("Local file deleted successfully.");
+          }
+        }
+        // Now you can update your database
+      } else if (update.status == TaskStatus.failed) {
+        if (kDebugMode) {
+          print("Upload failed: ${update.exception}");
+        }
+      }
+
+      if (update.exception is TaskHttpException) {
+        final httpEx = update.exception as TaskHttpException;
+        if (kDebugMode) {
+          print("Status Code: ${httpEx.httpResponseCode}");
+        }
+        if (kDebugMode) {
+          print("Response Body: ${httpEx.description}");
+        } // THIS IS THE GOLD MINE
+      }
+      if (kDebugMode) {
+        print(
+          "Status Update: ${update.status} for ${update.task.filename} ${update.task.metaData}",
+        );
+      }
+    } else if (update is TaskProgressUpdate) {
+      // TeseUploadManager.instance.updateProgress(
+      //   update.task.taskId,
+      //   update.progress,
+      // );
+      if (kDebugMode) {
+        print("Progress: ${(update.progress * 100).toStringAsFixed(1)}%");
+      }
+    }
+  });
 }
 
 getOptions() {
@@ -113,10 +186,16 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // If you're going to use other Firebase services in the background, such as Firestore,
   // make sure you call `initializeApp` before using other Firebase services.
 
-  print("Handling a background message: ${message.messageId}");
+  if (kDebugMode) {
+    print("Handling a background message: ${message.messageId}");
+  }
 }
 
+final TeseRouteObserver teseObserver = TeseRouteObserver();
+
 class TeseApp extends StatelessWidget {
+  const TeseApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<ThemeMode>(
@@ -125,18 +204,94 @@ class TeseApp extends StatelessWidget {
         return MaterialApp(
           theme: lightTheme,
           darkTheme: darkTheme,
-          themeMode: mode, // This controls the switch
+          themeMode: mode,
           navigatorKey: settingRepo.navigatorKey,
           title: 'Tese',
           initialRoute: '/Splash',
-          //       initialRoute: '/Intro',
+          navigatorObservers: [teseObserver],
           onGenerateRoute: RouteGenerator.generateRoute,
           debugShowCheckedModeBanner: false,
-
           localizationsDelegates: const [FormBuilderLocalizations.delegate],
+
+          // --- ADD THIS BUILDER SECTION ---
+          builder: (context, child) {
+            return Stack(
+              children: [
+                // 1. The main app content (Navigator)
+                child!,
+                ValueListenableBuilder<String?>(
+                  valueListenable: currentRouteName,
+                  builder: (context, routeName, _) {
+                    // If we are on a full player screen, hide the mini player
+                    if (routeName == '/TeseAudoPlayer' ||
+                        routeName == '/OfflineAudioPlayer') {
+                      return const SizedBox.shrink();
+                    }
+
+                    return StreamBuilder<MediaItem?>(
+                      stream: audioHandler.mediaItem,
+                      builder: (context, snapshot) {
+                        if (snapshot.data == null) {
+                          return const SizedBox.shrink();
+                        }
+
+                        return Positioned(
+                          bottom: MediaQuery.of(context).padding.bottom + 50,
+                          left: 10,
+                          right: 10,
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 300),
+                            transitionBuilder: (child, animation) {
+                              return SlideTransition(
+                                position: Tween<Offset>(
+                                  begin: const Offset(0, 1),
+                                  end: Offset.zero,
+                                ).animate(animation),
+                                child: child,
+                              );
+                            },
+
+                            child: GlobalAudioProgressBar(),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+                // 2. The Global Mini Player
+                // Positioned(
+                //   left: 0,
+                //   right: 0,
+                //   // Positions it just above the bottom of the screen
+                //   // Accounting for system navigation bars (Safe Area)
+                //   bottom: MediaQuery.of(context).padding.bottom + 10,
+                //   child: Material(
+                //     type: MaterialType.transparency,
+                //     child: GlobalAudioProgressBar(),
+                //   ),
+                // ),
+              ],
+            );
+          },
         );
       },
     );
+  }
+}
+
+class TeseRouteObserver extends NavigatorObserver {
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPush(route, previousRoute);
+    // Update the name when we go TO a new screen
+    currentRouteName.value = route.settings.name;
+  }
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPop(route, previousRoute);
+    // Update the name back to the PREVIOUS screen when we go back
+    currentRouteName.value = previousRoute?.settings.name;
   }
 }
 

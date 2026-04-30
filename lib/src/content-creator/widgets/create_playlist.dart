@@ -20,7 +20,6 @@ class FacebookCreatePlaylist extends StatefulWidget {
 
 class _FacebookCreatePlaylistState extends StateMVC<FacebookCreatePlaylist> {
   final _formKey = GlobalKey<FormState>();
-
   late CreatorController _con;
 
   _FacebookCreatePlaylistState() : super(CreatorController()) {
@@ -31,298 +30,372 @@ class _FacebookCreatePlaylistState extends StateMVC<FacebookCreatePlaylist> {
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
 
-  String _accessType = 'free'; // 'free' or 'paid'
+  String _accessType = 'free';
   String _selectedCurrency = 'USD';
   bool _isPublic = true;
+  bool _isAudio = false;
+  bool _isAlbum = false;
   File? _thumbnailFile;
-  final Color brandGreen = const Color(0xFF00D285);
-
-  final ImagePicker _picker = ImagePicker();
-
-  Future<void> _pickThumbnail() async {
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-    if (image != null) {
-      File file = File(image.path!);
-      CroppedFile? croppedFile = await ImageCropper().cropImage(
-        sourcePath: file.path,
-        aspectRatio: CropAspectRatio(ratioX: 1, ratioY: 1),
-        uiSettings: [
-          AndroidUiSettings(
-            toolbarTitle: 'Crop Image',
-            toolbarColor: brandGreen,
-            toolbarWidgetColor: Colors.white,
-            activeControlsWidgetColor: brandGreen,
-            initAspectRatio: CropAspectRatioPreset.original,
-            lockAspectRatio: false,
-            aspectRatioPresets: [
-              CropAspectRatioPreset.original,
-              CropAspectRatioPreset.square,
-              CropAspectRatioPreset.ratio4x3,
-            ],
-          ),
-          IOSUiSettings(
-            title: 'Crop Image',
-
-            aspectRatioPresets: [
-              CropAspectRatioPreset.original,
-              CropAspectRatioPreset.square,
-              CropAspectRatioPreset.ratio4x3,
-            ],
-          ),
-        ],
-      );
-
-      if (croppedFile != null) {
-        setState(() => _thumbnailFile = File(croppedFile.path));
-
-        _con.uploadPlayListThumb(_thumbnailFile!);
-      }
-    }
-  }
-
-  void _showSuccess(BuildContext dialogContext) {
-    showDialog(
-      context: context,
-      barrierDismissible: false, // User must click the button
-      builder: (BuildContext context) {
-        return SuccessDialog(
-          message: "Your new playlist is ready for videos!",
-          onDismiss: () {
-            Navigator.of(dialogContext).pop();
-            Navigator.of(context).pop(); // Close Dialog
-            // Navigate to the Channel Detail screen or List
-          },
-        );
-      },
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return CustomOverlay(
       loading: _con.loading,
       child: Scaffold(
-        key: _con.scaffoldKey,
-        backgroundColor: Colors.white,
+        backgroundColor: isDark ? Colors.black : Colors.white,
         appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0.5,
+          backgroundColor: isDark ? Colors.black : Colors.white,
+          elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.close, color: Colors.black),
+            icon: Icon(
+              Icons.close,
+              color: isDark ? Colors.white : Colors.black,
+            ),
             onPressed: () => Navigator.pop(context),
           ),
-          title: const Text(
-            "Create Playlist",
+          title: Text(
+            "New Playlist",
             style: TextStyle(
-              color: Colors.black,
-              fontSize: 17,
-              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.white : Colors.black,
+              fontWeight: FontWeight.w900,
+              fontSize: 20,
             ),
           ),
           actions: [
             TextButton(
-              onPressed: () async {
-                print("create_pressed");
-                if (_formKey.currentState!.validate() &&
-                    _con.playlistThumb != null) {
-                  Map map = {
-                    "channel_id": widget.channel.id,
-                    "title": _titleController.text,
-                    "description": _descriptionController.text,
-                    "type": _accessType,
-                    "price": _priceController.text.isEmpty
-                        ? 0.00
-                        : _priceController.text,
-                    "currency": _selectedCurrency,
-                    "thumbnail_url": _con.playlistThumb?.fileLink,
-                    "is_public": _isPublic,
-                  };
-                  Playlist? channel = await _con.createPlaylist(map);
-
-                  if (channel != null) {
-                    _showSuccess(context);
-                  } else {
-                    CustomMessageHandler().showErrorSnakeBar(
-                      context,
-                      "Something went wrong.Try again",
-                    );
-                  }
-                } else {
-                  CustomMessageHandler().showErrorSnakeBar(
-                    context,
-                    "Please fill in all fields including a thumbnail",
-                  );
-                }
-              },
+              onPressed: _submitPlaylist,
               child: const Text(
                 "CREATE",
                 style: TextStyle(
-                  color: Colors.blueAccent,
-                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF679E4F),
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.1,
                 ),
               ),
             ),
+            const SizedBox(width: 8),
           ],
         ),
-        body: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: SingleChildScrollView(
-            child: Form(
-              key: _formKey,
-              child: Column(
-                children: [
-                  // 1. Thumbnail / Cover Section
-                  GestureDetector(
-                    onTap: _pickThumbnail,
-                    child: Container(
-                      height: 220,
-                      width: double.infinity,
-                      color: Colors.grey.shade100,
-                      child:
-                          _thumbnailFile != null && _con.playlistThumb != null
-                          ? Image.file(_thumbnailFile!, fit: BoxFit.cover)
-                          : Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.add_photo_alternate,
-                                  size: 50,
-                                  color: Colors.grey.shade400,
-                                ),
-                                const SizedBox(height: 10),
-                                const Text(
-                                  "Add Playlist Thumbnail",
-                                  style: TextStyle(color: Colors.grey),
-                                ),
-                              ],
-                            ),
-                    ),
-                  ),
+        body: SingleChildScrollView(
+          child: Column(
+            children: [
+              // 1. Interactive Thumbnail Header
+              _buildThumbnailPicker(isDark),
 
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // 2. Title Input
-                        TextFormField(
-                          controller: _titleController,
-                          validator: (v) {
-                            if (v == null || v.isEmpty) {
-                              return 'required';
+              Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildSectionTitle("IDENTITY", isDark),
+                      _buildTransparentField(
+                        controller: _titleController,
+                        hint: "Playlist Name",
+                        icon: Icons.auto_awesome_motion,
+                        isDark: isDark,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildTransparentField(
+                        controller: _descriptionController,
+                        hint: "What is this collection about?",
+                        icon: Icons.description_outlined,
+                        isDark: isDark,
+                        maxLines: 3,
+                      ),
+
+                      const SizedBox(height: 32),
+                      _buildSectionTitle("CONTENT TYPE", isDark),
+                      _buildSettingsTile(
+                        title: "Audio playlist",
+                        subtitle: _isAudio
+                            ? "Audio only playlist"
+                            : "Make it an audio playlist",
+                        icon: _isAudio ? Icons.mic : Icons.video_camera_front,
+                        trailing: Switch(
+                          value: _isAudio,
+                          onChanged: (val) => setState(() {
+                            _isAudio = val;
+                            if (_isAudio == false) {
+                              _isAlbum = false;
                             }
-
-                            return null;
-                          },
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          decoration: const InputDecoration(
-                            hintText: "Playlist title",
-                            border: InputBorder.none,
-                            hintStyle: TextStyle(color: Colors.grey),
-                          ),
+                          }),
+                          activeColor: const Color(0xFF679E4F),
                         ),
-                        const Divider(),
+                        isDark: isDark,
+                      ),
 
-                        // 3. Description Input
-                        TextFormField(
-                          controller: _descriptionController,
-
-                          validator: (v) {
-                            if (v == null || v.isEmpty) {
-                              return 'required';
-                            }
-
-                            return null;
-                          },
-                          maxLines: 3,
-                          decoration: const InputDecoration(
-                            hintText: "Give your playlist a description...",
-                            border: InputBorder.none,
-                          ),
-                        ),
-                        const Divider(),
-
-                        // 4. Privacy/Visibility (The Facebook "Audience Selector" style)
-                        ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          leading: CircleAvatar(
-                            backgroundColor: Colors.grey.shade200,
-                            child: Icon(
-                              _isPublic ? Icons.public : Icons.lock,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          title: const Text("Who can see this?"),
-                          subtitle: Text(_isPublic ? "Public" : "Only Me"),
+                      if (_isAudio) ...[
+                        const SizedBox(height: 32),
+                        _buildSectionTitle("", isDark),
+                        _buildSettingsTile(
+                          title: "Album",
+                          subtitle: _isAlbum
+                              ? "Album playlist"
+                              : "Mark it as an album",
+                          icon: _isAudio ? Icons.mic : Icons.video_camera_front,
                           trailing: Switch(
-                            value: _isPublic,
-                            onChanged: (val) => setState(() => _isPublic = val),
-                            activeColor: Colors.blueAccent,
+                            value: _isAlbum,
+                            onChanged: (val) => setState(() => _isAlbum = val),
+                            activeColor: const Color(0xFF679E4F),
                           ),
+                          isDark: isDark,
                         ),
-                        const Divider(),
-
-                        // 5. Access Type (Free vs Paid)
-                        _buildAccessDropdown(),
-
-                        if (_accessType == 'paid') ...[
-                          const SizedBox(height: 10),
-                          Row(
-                            children: [
-                              Expanded(child: _buildPriceField()),
-                              const SizedBox(width: 15),
-                              Expanded(child: _buildCurrencyDropdown()),
-                            ],
-                          ),
-                        ],
                       ],
-                    ),
+
+                      const SizedBox(height: 32),
+                      _buildSectionTitle("VISIBILITY & AUDIENCE", isDark),
+                      _buildSettingsTile(
+                        title: "Public Access",
+                        subtitle: _isPublic
+                            ? "Visible to everyone"
+                            : "Private collection",
+                        icon: _isPublic ? Icons.public : Icons.lock_outline,
+                        trailing: Switch(
+                          value: _isPublic,
+                          onChanged: (val) => setState(() => _isPublic = val),
+                          activeColor: const Color(0xFF679E4F),
+                        ),
+                        isDark: isDark,
+                      ),
+
+                      const SizedBox(height: 32),
+                      _buildSectionTitle("MONETIZATION", isDark),
+                      _buildSettingsTile(
+                        title: "Access Type",
+                        subtitle: "How viewers enter this playlist",
+                        icon: Icons.payments_outlined,
+                        trailing: _buildAccessDropdown(isDark),
+                        isDark: isDark,
+                      ),
+
+                      if (_accessType == 'paid') ...[
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(
+                              flex: 2,
+                              child: _buildTransparentField(
+                                controller: _priceController,
+                                hint: "Price",
+                                icon: Icons.attach_money,
+                                isDark: isDark,
+                                isNumber: true,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(child: _buildCurrencySelector(isDark)),
+                          ],
+                        ),
+                      ],
+                      const SizedBox(height: 60),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  // --- Facebook Style Dropdown Methods ---
+  // --- UI Logic Helpers ---
 
-  Widget _buildAccessDropdown() {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: CircleAvatar(
-        backgroundColor: Colors.grey.shade200,
-        child: const Icon(Icons.monetization_on, color: Colors.black87),
-      ),
-      title: const Text("Access Type"),
-      trailing: DropdownButton<String>(
-        value: _accessType,
-        underline: const SizedBox(),
-        items: const [
-          DropdownMenuItem(value: 'free', child: Text("Free")),
-          DropdownMenuItem(value: 'paid', child: Text("Paid")),
-        ],
-        onChanged: (val) => setState(() => _accessType = val!),
+  Future<void> _submitPlaylist() async {
+    if (_formKey.currentState!.validate() && _con.playlistThumb != null) {
+      Map map = {
+        "channel_id": widget.channel.id,
+        "title": _titleController.text,
+        "description": _descriptionController.text,
+        "type": _accessType,
+        "price": _priceController.text.isEmpty ? 0.00 : _priceController.text,
+        "currency": _selectedCurrency,
+        "thumbnail_url": _con.playlistThumb?.fileLink,
+        "is_public": _isPublic,
+        "is_audio": _isAudio,
+        "is_album": _isAlbum,
+      };
+      Playlist? playlist = await _con.createPlaylist(map);
+      if (playlist != null) {
+        _showSuccess(context);
+      } else {
+        CustomMessageHandler().showErrorSnakeBar(
+          context,
+          "Failed to create playlist.",
+        );
+      }
+    } else {
+      CustomMessageHandler().showErrorSnakeBar(
+        context,
+        "Thumbnail and titles are required.",
+      );
+    }
+  }
+
+  Widget _buildThumbnailPicker(bool isDark) {
+    return GestureDetector(
+      onTap: _pickThumbnail,
+      child: Container(
+        height: 240,
+        width: double.infinity,
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isDark ? Colors.white10 : Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: isDark ? Colors.white10 : Colors.grey.shade200,
+          ),
+          image: (_thumbnailFile != null && _con.playlistThumb != null)
+              ? DecorationImage(
+                  image: FileImage(_thumbnailFile!),
+                  fit: BoxFit.cover,
+                )
+              : null,
+        ),
+        child: (_thumbnailFile == null)
+            ? Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.add_photo_alternate_outlined,
+                    size: 48,
+                    color: isDark ? Colors.white24 : Colors.grey.shade400,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    "Add Playlist Thumbnail",
+                    style: TextStyle(
+                      color: isDark ? Colors.white38 : Colors.grey.shade500,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              )
+            : Container(
+                alignment: Alignment.bottomRight,
+                padding: const EdgeInsets.all(12),
+                child: CircleAvatar(
+                  backgroundColor: Colors.black54,
+                  child: Icon(Icons.edit, color: Colors.white, size: 18),
+                ),
+              ),
       ),
     );
   }
 
-  Widget _buildCurrencyDropdown() {
+  Widget _buildTransparentField({
+    required TextEditingController controller,
+    required String hint,
+    required IconData icon,
+    required bool isDark,
+    int maxLines = 1,
+    bool isNumber = false,
+  }) {
+    return TextFormField(
+      controller: controller,
+      maxLines: maxLines,
+      keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+      style: TextStyle(
+        color: isDark ? Colors.white : Colors.black,
+        fontWeight: FontWeight.w600,
+      ),
+      validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: TextStyle(
+          color: isDark ? Colors.white24 : Colors.grey,
+          fontSize: 14,
+        ),
+        prefixIcon: Icon(icon, size: 20, color: const Color(0xFF679E4F)),
+        filled: true,
+        fillColor: isDark
+            ? Colors.white.withOpacity(0.05)
+            : Colors.grey.shade50,
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(
+            color: isDark ? Colors.white10 : Colors.grey.shade200,
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFF679E4F)),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSettingsTile({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Widget trailing,
+    required bool isDark,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? Colors.white10 : Colors.grey.shade200,
+        ),
+      ),
+      child: ListTile(
+        contentPadding: EdgeInsets.zero,
+        leading: CircleAvatar(
+          backgroundColor: const Color(0xFF679E4F).withOpacity(0.1),
+          child: Icon(icon, color: const Color(0xFF679E4F), size: 20),
+        ),
+        title: Text(
+          title,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+            color: isDark ? Colors.white : Colors.black,
+          ),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: const TextStyle(fontSize: 12, color: Colors.grey),
+        ),
+        trailing: trailing,
+      ),
+    );
+  }
+
+  Widget _buildAccessDropdown(bool isDark) {
+    return DropdownButton<String>(
+      value: _accessType,
+      underline: const SizedBox(),
+      dropdownColor: isDark ? const Color(0xFF1A1A1A) : Colors.white,
+      items: const [
+        DropdownMenuItem(value: 'free', child: Text("Free Access")),
+        DropdownMenuItem(value: 'paid', child: Text("Premium")),
+      ],
+      onChanged: (val) => setState(() => _accessType = val!),
+    );
+  }
+
+  Widget _buildCurrencySelector(bool isDark) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(8),
+        color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? Colors.white10 : Colors.grey.shade200,
+        ),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: _selectedCurrency,
           isExpanded: true,
+          dropdownColor: isDark ? const Color(0xFF1A1A1A) : Colors.white,
           items: const [
             DropdownMenuItem(value: "USD", child: Text("USD")),
             DropdownMenuItem(value: "EUR", child: Text("EUR")),
@@ -334,35 +407,59 @@ class _FacebookCreatePlaylistState extends StateMVC<FacebookCreatePlaylist> {
     );
   }
 
-  Widget _buildPriceField() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: TextFormField(
-        controller: _priceController,
-        validator: (v) {
-          if (v == null || v.isEmpty) {
-            return 'required';
-          }
-
-          if (num.tryParse(v) == null) {
-            return 'Enter a valid amount';
-          }
-
-          if (num.tryParse(v)! <= 0) {
-            return 'Enter a valid amount';
-          }
-          return null;
-        },
-        keyboardType: TextInputType.number,
-        decoration: const InputDecoration(
-          hintText: "0.00",
-          border: InputBorder.none,
-          labelText: "Price",
+  Widget _buildSectionTitle(String title, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 12),
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w900,
+          color: isDark ? Colors.white24 : Colors.grey.shade400,
+          letterSpacing: 1.5,
         ),
+      ),
+    );
+  }
+
+  // --- Reuse existing crop/pick logic ---
+  Future<void> _pickThumbnail() async {
+    final XFile? image = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+    );
+    if (image != null) {
+      CroppedFile? croppedFile = await ImageCropper().cropImage(
+        sourcePath: image.path,
+        aspectRatio: const CropAspectRatio(
+          ratioX: 16,
+          ratioY: 9,
+        ), // Playlists usually use 16:9
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: 'Crop Thumbnail',
+            toolbarColor: const Color(0xFF679E4F),
+            toolbarWidgetColor: Colors.white,
+          ),
+          IOSUiSettings(title: 'Crop Thumbnail'),
+        ],
+      );
+      if (croppedFile != null) {
+        setState(() => _thumbnailFile = File(croppedFile.path));
+        _con.uploadPlayListThumb(_thumbnailFile!);
+      }
+    }
+  }
+
+  void _showSuccess(BuildContext dialogContext) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) => SuccessDialog(
+        message: "Your playlist is ready! Let's add some videos.",
+        onDismiss: () {
+          Navigator.of(dialogContext).pop();
+          Navigator.of(context).pop();
+        },
       ),
     );
   }

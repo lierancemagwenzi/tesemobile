@@ -5,6 +5,7 @@ import 'package:smacredit/client/channels/empty_widget.dart';
 import 'package:smacredit/client/controller/client_user_controller.dart';
 import 'package:smacredit/client/home/home.dart';
 import 'package:smacredit/src/content-creator/models/channel_model.dart';
+import 'package:smacredit/src/repositories/user_repository.dart';
 import 'package:smacredit/src/widgets/CustomOverlay.dart';
 
 import '../models/dashboard_model.dart';
@@ -19,7 +20,7 @@ class ChannelsDirectoryScreen extends StatefulWidget {
 }
 
 class _ChannelsDirectoryScreenState extends StateMVC<ChannelsDirectoryScreen> {
-  bool _isGridView = true;
+  bool _isGridView = false;
   String _searchQuery = "";
 
   // Branding Colors
@@ -53,16 +54,16 @@ class _ChannelsDirectoryScreenState extends StateMVC<ChannelsDirectoryScreen> {
         backgroundColor: theme.scaffoldBackgroundColor,
         appBar: AppBar(
           title: Text(
-            "${widget.category?.name} Channels",
+            "${widget.category.name} Channels",
             style: theme.textTheme.titleLarge,
           ),
           actions: [
-            IconButton(
-              icon: Icon(
-                _isGridView ? Icons.view_list_rounded : Icons.grid_view_rounded,
-              ),
-              onPressed: () => setState(() => _isGridView = !_isGridView),
-            ),
+            // IconButton(
+            //   icon: Icon(
+            //     _isGridView ? Icons.view_list_rounded : Icons.grid_view_rounded,
+            //   ),
+            //   onPressed: () => setState(() => _isGridView = !_isGridView),
+            // ),
           ],
         ),
         body: _con.channels.isEmpty
@@ -162,7 +163,10 @@ class _ChannelCard extends StatelessWidget {
         children: [
           CircleAvatar(
             radius: 35,
-            backgroundImage: CachedNetworkImageProvider(channel.logoUrl ?? ""),
+            backgroundImage: CachedNetworkImageProvider(
+              channel.logoUrl ?? "",
+              headers: {'Cookie': cloudFrontCookieNotifier.value},
+            ),
             backgroundColor: Colors.grey[800],
             // backgroundImage: NetworkImage(channel.logoUrl ?? ""),
           ),
@@ -190,7 +194,10 @@ class _ChannelCard extends StatelessWidget {
       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       leading: CircleAvatar(
         radius: 25,
-        backgroundImage: CachedNetworkImageProvider(channel.logoUrl ?? ""),
+        backgroundImage: CachedNetworkImageProvider(
+          channel.logoUrl ?? "",
+          headers: {'Cookie': cloudFrontCookieNotifier.value},
+        ),
         backgroundColor: Colors.grey[800],
         // backgroundImage: NetworkImage(channel.logoUrl ?? ""),
       ),

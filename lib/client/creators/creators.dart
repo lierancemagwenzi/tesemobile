@@ -27,7 +27,7 @@ class _CreatorGalleryState extends StateMVC<CreatorGallery> {
     _con.listenForCreators();
   }
 
-  bool _isGridView = true;
+  bool _isGridView = false;
   String _searchQuery = "";
 
   // Mock Data
@@ -45,10 +45,10 @@ class _CreatorGalleryState extends StateMVC<CreatorGallery> {
       appBar: AppBar(
         title: const Text("Creators"),
         actions: [
-          IconButton(
-            icon: Icon(_isGridView ? Icons.list : Icons.grid_view),
-            onPressed: () => setState(() => _isGridView = !_isGridView),
-          ),
+          // IconButton(
+          //   icon: Icon(_isGridView ? Icons.list : Icons.grid_view),
+          //   onPressed: () => setState(() => _isGridView = !_isGridView),
+          // ),
         ],
       ),
       body: Column(
@@ -109,8 +109,10 @@ class _CreatorGalleryState extends StateMVC<CreatorGallery> {
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: creators.length,
-      itemBuilder: (context, index) =>
-          _CreatorCard(creator: creators[index], isGrid: false),
+      itemBuilder: (context, index) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8.0),
+        child: _CreatorCard(creator: creators[index], isGrid: false),
+      ),
     );
   }
 }

@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:mvc_pattern/mvc_pattern.dart';
+import 'package:smacredit/src/auth/controller/LoginController.dart';
+import 'package:smacredit/src/theme/app_theme.dart';
+import 'package:smacredit/src/widgets/CustomOverlay.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 
 class TeseTermsScreen extends StatefulWidget {
   final Function(bool) onAcceptanceChanged;
@@ -10,10 +15,10 @@ class TeseTermsScreen extends StatefulWidget {
   });
 
   @override
-  State<TeseTermsScreen> createState() => _TeseTermsScreenState();
+  StateMVC<TeseTermsScreen> createState() => _TeseTermsScreenState();
 }
 
-class _TeseTermsScreenState extends State<TeseTermsScreen> {
+class _TeseTermsScreenState extends StateMVC<TeseTermsScreen> {
   // Tese Africa Brand Colors
   final Color brandGreen = const Color(0xFF00D285);
   final Color primaryText = const Color(0xFF1A0B2E);
@@ -22,167 +27,207 @@ class _TeseTermsScreenState extends State<TeseTermsScreen> {
 
   bool _hasAccepted = false;
 
+  late LoginController _con;
+
+  _TeseTermsScreenState() : super(LoginController()) {
+    _con = controller as LoginController;
+  }
+  late final WebViewController webcontroller;
+
+  bool initialised = false;
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(Duration.zero).then((v) {
+      _con.getCurrentTerms().then((v) {
+        if (v != null) {
+          webcontroller = WebViewController()
+            ..setJavaScriptMode(JavaScriptMode.unrestricted)
+            ..loadHtmlString(v.data.terms.content);
+          setState(() {
+            initialised = true;
+          });
+        } else {
+          print("terms is null");
+        }
+      });
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text(
-          "Terms and Conditions",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: brandGreen,
-        elevation: 0,
-        centerTitle: true,
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return CustomOverlay(
+      loading: _con.loading,
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        bottomNavigationBar: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            _buildMainTitle("Terms and Conditions"),
-            _buildSubtitle("Version 2.0 | Effective Date: 09/12/2025"),
-            const Divider(height: 40),
-
-            _buildSectionTitle("1. Welcome to Tese Africa"),
-            _buildBodyText(
-              "This agreement sets forth the terms and conditions governing your access to and use of Tese Africa, a secure content creator platform owned and operated by Propsmart Technologies (Private) Limited (\"Propsmart,\" \"we,\" or \"us\")[cite: 3]. These Terms of Service (\"Terms\") are applicable to you in your capacity as a buyer, seller, sender, or receiver of electronic funds (collectively, \"Users\") utilizing Tese Africa[cite: 4]. Your use or access of the Service is contingent upon your acceptance of these Terms[cite: 5]. IF YOU DO NOT AGREE TO THESE LEGAL TERMS, THEN YOU ARE EXPRESSLY PROHIBITED FROM USING THE SERVICES AND YOU MUST DISCONTINUE USE IMMEDIATELY[cite: 6].",
-            ),
-
-            _buildSectionTitle("Definitions"),
-            _buildBulletPoint(
-              "Platform",
-              "The Tese Africa website, applications, APIs, and services[cite: 8].",
-            ),
-            _buildBulletPoint(
-              "User",
-              "Any individual or entity accessing or using the Platform[cite: 9].",
-            ),
-            _buildBulletPoint(
-              "Creator",
-              "A User who publishes content and receives payments through Tese Africa[cite: 10].",
-            ),
-            _buildBulletPoint(
-              "Supporter",
-              "A User who makes payments to a Creator[cite: 11].",
-            ),
-            _buildBulletPoint(
-              "Content",
-              "Any text, audio, video, images, or digital material uploaded or shared by a Creator[cite: 12].",
-            ),
-            _buildBulletPoint(
-              "Payment Services",
-              "Payment processing services provided through third-party processors, including Smatpay[cite: 13].",
-            ),
-
-            _buildSectionTitle("2. Agreement and Language"),
-            _buildBodyText(
-              "By registering for or otherwise utilizing the Tese Africa service, you signify your acknowledgment of having read, understood, and agreed to be bound by the terms and conditions set forth in this Agreement[cite: 15]. For your convenience, it is advisable to review, save, or print a copy of this Agreement for your records[cite: 16]. Your acceptance will be confirmed electronically during the registration process through actions such as ticking a checkbox or clicking a button[cite: 17]. Please note that this Agreement is provided exclusively in English[cite: 18].",
-            ),
-
-            _buildSectionTitle("3. Using Tese Africa Legally"),
-            _buildBodyText(
-              "Your use of Tese Africa must at-all-times comply with all applicable laws and regulations in the Zimbabwean jurisdiction, regardless of your purpose for using the service[cite: 20]. This includes, but is not limited to, financial regulations, consumer protection laws, and anti-money laundering (AML) requirements[cite: 21]. By using Tese Africa, you acknowledge and agree to be bound by the terms and conditions set forth in our Acceptable Use Policy (AUP)[cite: 24].",
-            ),
-
-            _buildSectionTitle("4. Registration Requirements"),
-            _buildBodyText(
-              "To register for a Tese Africa account and access the Service, you must:",
-            ),
-            _buildBulletPoint(
-              "Banked Entity",
-              "Be a banked individual or company with a financial institution in Zimbabwe that participates in the Tese Africa network[cite: 29].",
-            ),
-            _buildBulletPoint(
-              "Legal Capacity",
-              "Possess the legal capacity to enter into binding contracts (typically 18 years of age or older)[cite: 30].",
-            ),
-            _buildBulletPoint(
-              "Content Creator",
-              "A Content Creator, who develops and produces their own content with social media presence[cite: 31].",
-            ),
-
-            _buildSubHeader("Required Information (Individual):"),
-            _buildBodyText(
-              "• National ID [cite: 35]\n• Proof of residence [cite: 36]\n• Zimbabwean bank statement (last 3 months) [cite: 37]\n• Valid payment instrument details [cite: 38]",
-            ),
-
-            _buildSectionTitle("5. Payout Clause"),
-            _buildBodyText(
-              "Payouts to merchants will be processed upon receipt of a valid payout request[cite: 56]. The initial payout for new merchants may take up to 5 business days to process[cite: 57]. Subsequent payouts will be processed within 24-48 hours[cite: 58].",
-            ),
-            _buildSubHeader("Fee Structure:"),
-            _buildFeeTable(),
-            _buildBodyText(
-              "All transfer charges including VAT shall be borne solely by the merchant[cite: 60]. These fees are subject to change and will be communicated to clients in advance[cite: 73].",
-            ),
-
-            _buildSectionTitle("6. Mandatory Branding"),
-            _buildBodyText(
-              "All creators are required to display the \"Powered by Tese Africa\" branding on every payment interface where the Tese Africa system is implemented[cite: 76]. Non-compliance shall be deemed a material breach and may result in suspension[cite: 79].",
-            ),
-
-            _buildSectionTitle("7. User Content and Intellectual Property"),
-            _buildBodyText(
-              "You retain all ownership rights to the content you upload to Tese Africa. However, by sharing content, you grant Propsmart a non-exclusive, worldwide, royalty-free license to use, display, and distribute said content for the purpose of providing the Service. You represent that you own or have the necessary licenses for all content you publish.",
-            ),
-
-            _buildSectionTitle("8. Limitation of Liability"),
-            _buildBodyText(
-              "TO THE FULLEST EXTENT PERMITTED BY LAW, WE DISCLAIM ALL WARRANTIES, EXPRESS OR IMPLIED, IN CONNECTION WITH THE SERVICES. Propsmart is not liable for any loss or damage caused by viruses, distributed denial-of-service attacks, or other harmful materials.",
-            ),
-
-            _buildSectionTitle("9. Prohibited Activities"),
-            _buildBodyText(
-              "Users are strictly prohibited from utilizing Tese Africa for any illegal purposes, including money laundering, fraud, or the distribution of copyrighted material without authorization. Non-compliance with our Acceptable Use Policy (AUP) will result in immediate account suspension.",
-            ),
-
-            _buildSectionTitle("10. Indemnification"),
-            _buildBodyText(
-              "You agree to defend, indemnify, and hold harmless Propsmart Technologies, its subsidiaries, and affiliates from any claims, liabilities, or expenses arising from your use of the Platform or your violation of these Terms.",
-            ),
-
-            _buildSectionTitle("11. Termination of Service"),
-            _buildBodyText(
-              "We reserve the right to suspend or terminate your account at our sole discretion, without notice, for conduct that we believe violates these Terms or is harmful to other users or our business interests.",
-            ),
-
-            _buildSectionTitle("12. Changes to Terms"),
-            _buildBodyText(
-              "Propsmart may modify these Terms at any time. We will notify you of significant changes via the Platform or email. Continued use of the Service after changes constitute your acceptance of the new Terms.",
-            ),
-
-            _buildSectionTitle("13. Governing Law"),
-            _buildBodyText(
-              "These Legal Terms shall be governed by and defined following the laws of Zimbabwe[cite: 193]. Propsmart technologies Pvt Ltd and yourself irrevocably consent that the courts of Zimbabwe shall have exclusive jurisdiction to resolve any dispute[cite: 194].",
-            ),
-            _buildSectionTitle("14. Corrections and Inaccuracies"),
-            _buildBodyText(
-              "There may be information on Tese Africa that contains typographical errors, inaccuracies, or omissions, including descriptions, pricing, and availability. We reserve the right to correct any errors and to change or update the information on the Services at any time, without prior notice.",
-            ),
-
-            _buildSectionTitle("15. Dispute Resolution"),
-            _buildBodyText(
-              "Any disputes arising from these Terms or your use of the Service shall first be attempted to be resolved through good-faith informal negotiations. If a resolution is not reached within 30 days, the dispute shall be submitted to binding arbitration or the exclusive jurisdiction of the courts of Zimbabwe, as specified in the Governing Law section.",
-            ),
-
-            _buildSectionTitle("16. Contact Information"),
-            _buildBodyText(
-              "In order to resolve a complaint regarding the Services or to receive further information regarding use of the Services, please contact us at:\n\n"
-              "Propsmart Technologies (Private) Limited\n"
-              "Email: support@teseafrica.com\n"
-              "Website: www.teseafrica.com",
-            ),
-
-            const SizedBox(height: 40),
-            _buildFinalAgreement(),
-            const SizedBox(height: 40),
             if (widget.shouldAccept) _buildAcceptanceCard(),
             const SizedBox(height: 20),
             if (widget.shouldAccept) _buildStickyFooter(),
           ],
         ),
+        appBar: AppBar(
+          title: const Text(
+            "Terms and Conditions",
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          backgroundColor: brandGreen,
+          elevation: 0,
+          centerTitle: true,
+          iconTheme: const IconThemeData(color: Colors.white),
+        ),
+        body: !initialised
+            ? SizedBox.shrink()
+            : 1 == 1
+            ? Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: WebViewWidget(controller: webcontroller),
+              )
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildMainTitle("Terms and Conditions"),
+                  _buildSubtitle("Version 2.0 | Effective Date: 09/12/2025"),
+                  const Divider(height: 40),
+
+                  _buildSectionTitle("1. Welcome to Tese Africa"),
+                  _buildBodyText(
+                    "This agreement sets forth the terms and conditions governing your access to and use of Tese Africa, a secure content creator platform owned and operated by Propsmart Technologies (Private) Limited (\"Propsmart,\" \"we,\" or \"us\")[cite: 3]. These Terms of Service (\"Terms\") are applicable to you in your capacity as a buyer, seller, sender, or receiver of electronic funds (collectively, \"Users\") utilizing Tese Africa[cite: 4]. Your use or access of the Service is contingent upon your acceptance of these Terms[cite: 5]. IF YOU DO NOT AGREE TO THESE LEGAL TERMS, THEN YOU ARE EXPRESSLY PROHIBITED FROM USING THE SERVICES AND YOU MUST DISCONTINUE USE IMMEDIATELY[cite: 6].",
+                  ),
+
+                  _buildSectionTitle("Definitions"),
+                  _buildBulletPoint(
+                    "Platform",
+                    "The Tese Africa website, applications, APIs, and services[cite: 8].",
+                  ),
+                  _buildBulletPoint(
+                    "User",
+                    "Any individual or entity accessing or using the Platform[cite: 9].",
+                  ),
+                  _buildBulletPoint(
+                    "Creator",
+                    "A User who publishes content and receives payments through Tese Africa[cite: 10].",
+                  ),
+                  _buildBulletPoint(
+                    "Supporter",
+                    "A User who makes payments to a Creator[cite: 11].",
+                  ),
+                  _buildBulletPoint(
+                    "Content",
+                    "Any text, audio, video, images, or digital material uploaded or shared by a Creator[cite: 12].",
+                  ),
+                  _buildBulletPoint(
+                    "Payment Services",
+                    "Payment processing services provided through third-party processors, including Smatpay[cite: 13].",
+                  ),
+
+                  _buildSectionTitle("2. Agreement and Language"),
+                  _buildBodyText(
+                    "By registering for or otherwise utilizing the Tese Africa service, you signify your acknowledgment of having read, understood, and agreed to be bound by the terms and conditions set forth in this Agreement[cite: 15]. For your convenience, it is advisable to review, save, or print a copy of this Agreement for your records[cite: 16]. Your acceptance will be confirmed electronically during the registration process through actions such as ticking a checkbox or clicking a button[cite: 17]. Please note that this Agreement is provided exclusively in English[cite: 18].",
+                  ),
+
+                  _buildSectionTitle("3. Using Tese Africa Legally"),
+                  _buildBodyText(
+                    "Your use of Tese Africa must at-all-times comply with all applicable laws and regulations in the Zimbabwean jurisdiction, regardless of your purpose for using the service[cite: 20]. This includes, but is not limited to, financial regulations, consumer protection laws, and anti-money laundering (AML) requirements[cite: 21]. By using Tese Africa, you acknowledge and agree to be bound by the terms and conditions set forth in our Acceptable Use Policy (AUP)[cite: 24].",
+                  ),
+
+                  _buildSectionTitle("4. Registration Requirements"),
+                  _buildBodyText(
+                    "To register for a Tese Africa account and access the Service, you must:",
+                  ),
+                  _buildBulletPoint(
+                    "Banked Entity",
+                    "Be a banked individual or company with a financial institution in Zimbabwe that participates in the Tese Africa network[cite: 29].",
+                  ),
+                  _buildBulletPoint(
+                    "Legal Capacity",
+                    "Possess the legal capacity to enter into binding contracts (typically 18 years of age or older)[cite: 30].",
+                  ),
+                  _buildBulletPoint(
+                    "Content Creator",
+                    "A Content Creator, who develops and produces their own content with social media presence[cite: 31].",
+                  ),
+
+                  _buildSubHeader("Required Information (Individual):"),
+                  _buildBodyText(
+                    "• National ID [cite: 35]\n• Proof of residence [cite: 36]\n• Zimbabwean bank statement (last 3 months) [cite: 37]\n• Valid payment instrument details [cite: 38]",
+                  ),
+
+                  _buildSectionTitle("5. Payout Clause"),
+                  _buildBodyText(
+                    "Payouts to merchants will be processed upon receipt of a valid payout request[cite: 56]. The initial payout for new merchants may take up to 5 business days to process[cite: 57]. Subsequent payouts will be processed within 24-48 hours[cite: 58].",
+                  ),
+                  _buildSubHeader("Fee Structure:"),
+                  _buildFeeTable(),
+                  _buildBodyText(
+                    "All transfer charges including VAT shall be borne solely by the merchant[cite: 60]. These fees are subject to change and will be communicated to clients in advance[cite: 73].",
+                  ),
+
+                  _buildSectionTitle("6. Mandatory Branding"),
+                  _buildBodyText(
+                    "All creators are required to display the \"Powered by Tese Africa\" branding on every payment interface where the Tese Africa system is implemented[cite: 76]. Non-compliance shall be deemed a material breach and may result in suspension[cite: 79].",
+                  ),
+
+                  _buildSectionTitle(
+                    "7. User Content and Intellectual Property",
+                  ),
+                  _buildBodyText(
+                    "You retain all ownership rights to the content you upload to Tese Africa. However, by sharing content, you grant Propsmart a non-exclusive, worldwide, royalty-free license to use, display, and distribute said content for the purpose of providing the Service. You represent that you own or have the necessary licenses for all content you publish.",
+                  ),
+
+                  _buildSectionTitle("8. Limitation of Liability"),
+                  _buildBodyText(
+                    "TO THE FULLEST EXTENT PERMITTED BY LAW, WE DISCLAIM ALL WARRANTIES, EXPRESS OR IMPLIED, IN CONNECTION WITH THE SERVICES. Propsmart is not liable for any loss or damage caused by viruses, distributed denial-of-service attacks, or other harmful materials.",
+                  ),
+
+                  _buildSectionTitle("9. Prohibited Activities"),
+                  _buildBodyText(
+                    "Users are strictly prohibited from utilizing Tese Africa for any illegal purposes, including money laundering, fraud, or the distribution of copyrighted material without authorization. Non-compliance with our Acceptable Use Policy (AUP) will result in immediate account suspension.",
+                  ),
+
+                  _buildSectionTitle("10. Indemnification"),
+                  _buildBodyText(
+                    "You agree to defend, indemnify, and hold harmless Propsmart Technologies, its subsidiaries, and affiliates from any claims, liabilities, or expenses arising from your use of the Platform or your violation of these Terms.",
+                  ),
+
+                  _buildSectionTitle("11. Termination of Service"),
+                  _buildBodyText(
+                    "We reserve the right to suspend or terminate your account at our sole discretion, without notice, for conduct that we believe violates these Terms or is harmful to other users or our business interests.",
+                  ),
+
+                  _buildSectionTitle("12. Changes to Terms"),
+                  _buildBodyText(
+                    "Propsmart may modify these Terms at any time. We will notify you of significant changes via the Platform or email. Continued use of the Service after changes constitute your acceptance of the new Terms.",
+                  ),
+
+                  _buildSectionTitle("13. Governing Law"),
+                  _buildBodyText(
+                    "These Legal Terms shall be governed by and defined following the laws of Zimbabwe[cite: 193]. Propsmart technologies Pvt Ltd and yourself irrevocably consent that the courts of Zimbabwe shall have exclusive jurisdiction to resolve any dispute[cite: 194].",
+                  ),
+                  _buildSectionTitle("14. Corrections and Inaccuracies"),
+                  _buildBodyText(
+                    "There may be information on Tese Africa that contains typographical errors, inaccuracies, or omissions, including descriptions, pricing, and availability. We reserve the right to correct any errors and to change or update the information on the Services at any time, without prior notice.",
+                  ),
+
+                  _buildSectionTitle("15. Dispute Resolution"),
+                  _buildBodyText(
+                    "Any disputes arising from these Terms or your use of the Service shall first be attempted to be resolved through good-faith informal negotiations. If a resolution is not reached within 30 days, the dispute shall be submitted to binding arbitration or the exclusive jurisdiction of the courts of Zimbabwe, as specified in the Governing Law section.",
+                  ),
+
+                  _buildSectionTitle("16. Contact Information"),
+                  _buildBodyText(
+                    "In order to resolve a complaint regarding the Services or to receive further information regarding use of the Services, please contact us at:\n\n"
+                    "Propsmart Technologies (Private) Limited\n"
+                    "Email: support@teseafrica.com\n"
+                    "Website: www.teseafrica.com",
+                  ),
+
+                  const SizedBox(height: 40),
+                  _buildFinalAgreement(),
+                ],
+              ),
       ),
     );
   }
@@ -200,6 +245,11 @@ class _TeseTermsScreenState extends State<TeseTermsScreen> {
       child: CheckboxListTile(
         value: _hasAccepted,
         activeColor: brandGreen,
+        side: const BorderSide(
+          color: Colors.red,
+          width: 2.0,
+        ), // Unchecked border color
+
         title: Text(
           "I have read and explicitly agree to the Terms of Service and Acceptable Use Policy.",
           style: TextStyle(fontSize: 13, color: primaryText),

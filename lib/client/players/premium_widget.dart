@@ -1,13 +1,19 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:smacredit/client/players/video_player_widget.dart';
 
 class TesePremiumPaywall extends StatelessWidget {
   final String thumbnailUrl;
   final String videoTitle;
   final String price;
   final String currency;
+  final String reason;
   final VoidCallback onPurchase;
   final VoidCallback onExit;
+
+  final VoidCallback watchTrailer;
+
+  final bool hasTrailer;
 
   const TesePremiumPaywall({
     super.key,
@@ -17,6 +23,9 @@ class TesePremiumPaywall extends StatelessWidget {
     required this.currency,
     required this.onPurchase,
     required this.onExit,
+    required this.watchTrailer,
+    required this.hasTrailer,
+    required this.reason,
   });
 
   // Tese Africa Branding Colors
@@ -100,7 +109,7 @@ class TesePremiumPaywall extends StatelessWidget {
                       border: Border.all(color: Colors.white24),
                     ),
                     child: Text(
-                      "$currency $price",
+                      " $price",
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 28,
@@ -109,8 +118,8 @@ class TesePremiumPaywall extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  const Text(
-                    "One-time purchase for lifetime access",
+                  Text(
+                    reason.replaceAll("_", " "),
                     style: TextStyle(color: Colors.white70, fontSize: 13),
                   ),
                   const SizedBox(height: 50),
@@ -129,8 +138,8 @@ class TesePremiumPaywall extends StatelessWidget {
                         elevation: 0,
                       ),
                       onPressed: onPurchase,
-                      child: const Text(
-                        "PURCHASE VIDEO",
+                      child: Text(
+                        getPurchaseButtonText(reason),
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
@@ -138,6 +147,15 @@ class TesePremiumPaywall extends StatelessWidget {
                       ),
                     ),
                   ),
+
+                  if (hasTrailer) ...[
+                    const Divider(height: 10),
+                    TeseWatchTrailerButton(
+                      onTap: () {
+                        watchTrailer();
+                      },
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -158,5 +176,25 @@ class TesePremiumPaywall extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String getPurchaseButtonText(String? accessReason) {
+    switch (accessReason) {
+      case 'LOCKED_PREMIUM_VIDEO':
+        return "Purchase Video";
+
+      case 'LOCKED_CHANNEL_SUBSCRIPTION_REQUIRED':
+        return "Subscribe to Channel";
+
+      case 'LOCKED_PLAYLIST_PURCHASE_REQUIRED':
+        return "Subscribe to Playlist";
+
+      case 'LOCKED_RESTRICTED':
+      case 'LOCKED_UNKNOWN':
+        return "Access Restricted";
+
+      default:
+        return "Get Access";
+    }
   }
 }

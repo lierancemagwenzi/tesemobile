@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:mvc_pattern/mvc_pattern.dart';
 import 'package:smacredit/client/channels/empty_widget.dart';
+import 'package:smacredit/src/repositories/user_repository.dart';
 
 import '../controller/client_user_controller.dart';
 
@@ -116,6 +117,8 @@ class _SearchWidgetState extends StateMVC<SearchWidget> {
       child: 1 == 1
           ? CachedNetworkImage(
               imageUrl: url,
+              httpHeaders: {'Cookie': cloudFrontCookieNotifier.value},
+
               fit: BoxFit.cover,
               width: width,
               height: height,
@@ -161,7 +164,7 @@ class _SearchWidgetState extends StateMVC<SearchWidget> {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        automaticallyImplyLeading: false,
+        automaticallyImplyLeading: true,
         elevation: 0,
         centerTitle: true,
         title: Image.asset(
@@ -429,7 +432,7 @@ class _SearchWidgetState extends StateMVC<SearchWidget> {
                           ),
                           _iconStat(
                             Icons.visibility_outlined,
-                            (video.videoCount ?? 0).toString(),
+                            (video.viewCount ?? 0).toString(),
                           ),
                           // _iconStat(
                           //   Icons.download_outlined,
@@ -472,8 +475,12 @@ class _SearchWidgetState extends StateMVC<SearchWidget> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                      child: const Row(
+                      child: Row(
                         children: [
+                          // if (video.hasAccess == true)
+                          //   Icon(Icons.lock_open, color: Colors.white)
+                          // else
+                          //   Icon(Icons.lock, color: Colors.yellow),
                           Text("Play"),
                           Icon(Icons.chevron_right, size: 14),
                         ],

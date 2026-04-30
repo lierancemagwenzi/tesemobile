@@ -6,6 +6,7 @@ import 'package:smacredit/client/channels/empty_widget.dart';
 import 'package:smacredit/client/controller/client_user_controller.dart';
 import 'package:smacredit/client/models/dashboard_model.dart';
 import 'package:smacredit/src/models/UserModel.dart';
+import 'package:smacredit/src/repositories/user_repository.dart';
 import 'package:smacredit/src/utils/xhelper.dart';
 import 'package:smacredit/src/widgets/CustomOverlay.dart';
 
@@ -306,6 +307,8 @@ class _CategoryWidgetState extends StateMVC<CategoryWidget> {
   }) {
     return CachedNetworkImage(
       imageUrl: url,
+                                httpHeaders: {'Cookie': cloudFrontCookieNotifier.value},
+
       imageBuilder: (context, imageProvider) => Container(
         height: height,
         width: width ?? double.infinity,

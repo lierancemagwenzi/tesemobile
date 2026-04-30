@@ -1,17 +1,27 @@
+
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:mvc_pattern/mvc_pattern.dart';
-import 'package:smacredit/src/auth/widgets/models/terms_widget2.dart';
+import 'package:smacredit/src/auth/models/country_model.dart';
+import 'package:smacredit/src/auth/models/sign_up_type.dart';
+import 'package:smacredit/src/widgets/CustomOverlay.dart';
 import '../../controller/LoginController.dart';
+import '../../repository/login_repository.dart';
 import '../../../helpers/Message.dart';
 import '../../../helpers/Validator.dart';
-
-// Assuming these are your previously created screens
-// import 'tese_terms_screen.dart';
+import '../../../repositories/user_repository.dart';
 
 class CheckEmailWidget extends StatefulWidget {
   final String? message;
-  CheckEmailWidget({this.message});
+  final SignUpType signUpType;
+  final CountryModel? countryModel;
+
+  const CheckEmailWidget({
+    super.key,
+    this.message,
+    this.signUpType = SignUpType.supporter,
+    this.countryModel,
+  });
 
   @override
   _CheckEmailWidgetState createState() => _CheckEmailWidgetState();
@@ -19,7 +29,6 @@ class CheckEmailWidget extends StatefulWidget {
 
 class _CheckEmailWidgetState extends StateMVC<CheckEmailWidget> {
   final _formKey = GlobalKey<FormState>();
-  bool _isTermsAccepted = false;
   String email = '';
   late LoginController _con;
 
@@ -27,104 +36,77 @@ class _CheckEmailWidgetState extends StateMVC<CheckEmailWidget> {
     _con = controller as LoginController;
   }
 
-  final Color brandGreen = const Color(0xFF00D285);
+  // Brand Colors (Standardized)
+  final Color brandGreen = const Color(0xFF679E4F);
   final Color primaryDark = const Color(0xFF1A0B2E);
 
   @override
   void initState() {
     super.initState();
     if (widget.message != null) {
-      Future.delayed(const Duration(seconds: 1), () {
-        CustomMessageHandler().showSuccessSnakeBar(
-          _con.scaffoldKey.currentContext!,
-          widget.message!,
-        );
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        CustomMessageHandler().showSuccessSnakeBar(context, widget.message!);
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false,
-      child: Scaffold(
-        key: _con.scaffoldKey,
-        resizeToAvoidBottomInset: false,
-        body: Stack(
-          children: [
-            // 1. FULL BACKGROUND IMAGE (Matches Login Theme)
-            Container(
-              width: double.infinity,
-              height: double.infinity,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    primaryDark,
-                    const Color(0xFF2D1B4E),
-                    brandGreen.withOpacity(0.2),
-                  ],
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return CustomOverlay(
+      loading: _con.loading,
+      child: PopScope(
+        canPop: false,
+        child: Scaffold(
+          key: _con.scaffoldKey,
+          resizeToAvoidBottomInset: true, // Better for email input
+          body: Container(
+            width: double.infinity,
+            height: double.infinity,
+            color: Colors.black,
+            child: Stack(
+              children: [
+                Center(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(24.0),
+                    child: _buildGlassCard(isDark),
+                  ),
                 ),
-                // image: DecorationImage(
-                //   image: AssetImage('assets/images/bg.png'),
-                //   fit: BoxFit.cover,
-                // ),
-              ),
+              ],
             ),
-            // 2. DARK OVERLAY
-            Container(
-              width: double.infinity,
-              height: double.infinity,
-              color: Colors.black.withOpacity(0.5),
-            ),
-            Positioned(
-              top: -50,
-              right: -50,
-              child: Container(
-                width: 200,
-                height: 200,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: brandGreen.withOpacity(0.15),
-                ),
-              ),
-            ),
-            // 3. MAIN CONTENT
-            Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24.0),
-                child: _buildGlassCard(),
-              ),
-            ),
-            // 4. LOADING OVERLAY
-            if (_con.loading)
-              Container(
-                color: Colors.black45,
-                child: Center(
-                  child: CircularProgressIndicator(color: brandGreen),
-                ),
-              ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildGlassCard() {
+  Widget _buildBackgroundDecorations() {
+    return Positioned(
+      top: -50,
+      right: -50,
+      child: Container(
+        width: 200,
+        height: 200,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: brandGreen.withOpacity(0.1),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGlassCard(bool isDark) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(30),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.1),
+            color: Colors.white.withOpacity(isDark ? 0.05 : 0.08),
             borderRadius: BorderRadius.circular(30),
-            border: Border.all(
-              color: Colors.white.withOpacity(0.2),
-              width: 1.5,
-            ),
+            border: Border.all(color: Colors.white.withOpacity(0.2)),
           ),
           child: Form(
             key: _formKey,
@@ -134,9 +116,7 @@ class _CheckEmailWidgetState extends StateMVC<CheckEmailWidget> {
                 _buildHeader(),
                 const SizedBox(height: 35),
                 _buildEmailField(),
-                const SizedBox(height: 25),
-                _buildLegalSection(),
-                const SizedBox(height: 35),
+                const SizedBox(height: 30),
                 _buildProceedButton(),
                 const SizedBox(height: 20),
                 _buildLoginLink(),
@@ -151,15 +131,20 @@ class _CheckEmailWidgetState extends StateMVC<CheckEmailWidget> {
   Widget _buildHeader() {
     return Column(
       children: [
-        Image.asset('assets/images/logo-light.png', height: 70),
+        Image.asset(
+          'assets/images/logo-light.png',
+          height: 70,
+          errorBuilder: (c, e, s) =>
+              Icon(Icons.person_add_outlined, color: brandGreen, size: 60),
+        ),
         const SizedBox(height: 15),
         const Text(
           "REGISTRATION",
           style: TextStyle(
             color: Colors.white,
             fontSize: 22,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 2,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.5,
           ),
         ),
         const Text(
@@ -175,64 +160,67 @@ class _CheckEmailWidgetState extends StateMVC<CheckEmailWidget> {
       onSaved: (value) => email = value!,
       validator: (value) => Validator.validateRequired(value),
       style: const TextStyle(color: Colors.white),
+      cursorColor: brandGreen,
       decoration: InputDecoration(
-        prefixIcon: const Icon(Icons.email_outlined, color: Colors.white70),
+        prefixIcon: const Icon(
+          Icons.email_outlined,
+          color: Colors.white30,
+          size: 22,
+        ),
         hintText: "Email Address",
-        hintStyle: const TextStyle(color: Colors.white54),
+        hintStyle: const TextStyle(color: Colors.white30, fontSize: 14),
         filled: true,
         fillColor: Colors.white.withOpacity(0.05),
+        contentPadding: const EdgeInsets.symmetric(vertical: 18),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: brandGreen, width: 2),
+          borderSide: BorderSide(color: brandGreen, width: 1.5),
         ),
       ),
     );
   }
 
-  Widget _buildLegalSection() {
-    return Column(
-      children: [
-        GestureDetector(
-          onTap: _navigateToTerms,
-          child: CircleAvatar(
-            radius: 25,
-            backgroundColor: _isTermsAccepted ? brandGreen : Colors.white12,
-            child: Icon(
-              _isTermsAccepted ? Icons.check_circle : Icons.gavel_rounded,
-              color: Colors.white,
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        const Text(
-          "Legal Agreement",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          _isTermsAccepted
-              ? "Terms Accepted"
-              : "Review and accept terms to proceed",
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: _isTermsAccepted ? brandGreen : Colors.white60,
-            fontSize: 12,
-          ),
-        ),
-        if (!_isTermsAccepted)
-          TextButton(
-            onPressed: _navigateToTerms,
-            child: Text(
-              "VIEW TERMS",
-              style: TextStyle(color: brandGreen, fontSize: 13),
-            ),
-          ),
-      ],
-    );
+Future<void> _onProceed() async {
+    if (!_formKey.currentState!.validate()) return;
+    _formKey.currentState!.save();
+
+    setState(() => _con.loading = true);
+    final valid = await check_email({"email": email});
+    if (!mounted) return;
+    setState(() => _con.loading = false);
+
+    if (valid != true) {
+      CustomMessageHandler().showErrorSnakeBar(
+        context,
+        "Email is not available for use",
+      );
+      return;
+    }
+
+    current_registration_email.value = email;
+
+    final country = widget.countryModel;
+    if (country != null) {
+      // Country already known — navigate directly to the right registration screen
+      if (widget.signUpType == SignUpType.creator) {
+        Navigator.of(context).pushReplacementNamed(
+          '/RegistrationImages',
+          arguments: country,
+        );
+      } else {
+        Navigator.of(context).pushReplacementNamed(
+          '/ClientRegistration',
+          arguments: country,
+        );
+      }
+    } else {
+      // No country yet — let SelectCountry handle both country + type selection
+      Navigator.of(context).pushReplacementNamed('/SelectCountry');
+    }
   }
 
   Widget _buildProceedButton() {
@@ -240,39 +228,22 @@ class _CheckEmailWidgetState extends StateMVC<CheckEmailWidget> {
       width: double.infinity,
       height: 55,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        gradient: LinearGradient(colors: [brandGreen, const Color(0xFF00B876)]),
+        borderRadius: BorderRadius.circular(15),
+        gradient: LinearGradient(colors: [brandGreen, Colors.yellow.shade700]),
         boxShadow: [
-          if (_isTermsAccepted)
-            BoxShadow(
-              color: brandGreen.withOpacity(0.3),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
-            ),
+          BoxShadow(
+            color: brandGreen.withOpacity(0.2),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
         ],
       ),
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.transparent,
-          shadowColor: Colors.transparent,
-          disabledBackgroundColor: Colors.white10,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-        ),
-
-        onPressed: _isTermsAccepted
-            ? () {
-                if (_formKey.currentState!.validate()) {
-                  _formKey.currentState!.save();
-                  _con.checkEmail({"email": email});
-                }
-              }
-            : null,
-        child: Text(
+      child: TextButton(
+        onPressed: _onProceed,
+        child: const Text(
           "PROCEED",
           style: TextStyle(
-            color: _isTermsAccepted ? Colors.white : Colors.white38,
+            color: Colors.white,
             fontWeight: FontWeight.bold,
             letterSpacing: 1.2,
           ),
@@ -299,22 +270,4 @@ class _CheckEmailWidgetState extends StateMVC<CheckEmailWidget> {
     );
   }
 
-  void _navigateToTerms() {
-    // Navigates to the TeseTermsScreen you built earlier
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => TeseTermsScreen(
-          shouldAccept: true,
-          onAcceptanceChanged: (bool p1) {
-            setState(() {
-              _isTermsAccepted = p1;
-            });
-          },
-          // Pass any arguments needed for your terms screen
-          // e.g., onAccept: () => setState(() => _isTermsAccepted = true)
-        ),
-      ),
-    );
-  }
 }

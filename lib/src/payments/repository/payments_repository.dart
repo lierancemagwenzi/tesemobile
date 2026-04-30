@@ -2,12 +2,14 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:global_configuration/global_configuration.dart';
 import 'package:http/http.dart' as http;
 import 'package:smacredit/src/auth/repository/inteceptor.dart';
 import 'package:smacredit/src/models/UserModel.dart';
 import 'package:smacredit/src/payments/models/bank_account.dart';
 import 'package:smacredit/src/payments/models/currencyModel.dart';
+import 'package:smacredit/src/payments/models/default_link.dart';
 import 'package:smacredit/src/payments/models/document_type.dart';
 import 'package:smacredit/src/payments/models/payment_link_model.dart';
 import 'package:smacredit/src/payments/models/payout_model.dart';
@@ -90,6 +92,130 @@ Future<bool?> delete_payment_link(int id) async {
   } on Error catch (e) {
     print("error");
     print(e.stackTrace);
+    return null;
+  }
+}
+
+Future<DefaultLinkModel?> client_default_link(int user_id) async {
+  print("#account user");
+  final String url =
+      '${GlobalConfiguration().getValue('api_base_url')}/client/get-client-default-link/$user_id';
+  try {
+    final response = await client
+        .get(
+          Uri.parse(url),
+          headers: {
+            HttpHeaders.contentTypeHeader: 'application/json',
+            HttpHeaders.authorizationHeader:
+                'Bearer ${currentuser.value.token}',
+          },
+        )
+        .timeout(Duration(seconds: 60));
+
+    print(response.body);
+    if (response.statusCode == 200) {
+      DefaultLinkModel userModel = DefaultLinkModel.fromJson(
+        json.decode(response.body),
+      );
+      return userModel;
+    } else {
+      return null;
+    }
+  } on TimeoutException catch (e) {
+    print(e.message);
+    return null;
+  } on SocketException catch (e, s) {
+    return null;
+  } on Error catch (e, s) {
+    print("error");
+    print('Caught error: $e');
+    print('Stack trace: $s');
+    return null;
+  }
+}
+
+Future<DefaultLinkModel?> get_default_link(Map map) async {
+  print("#account user");
+  final String url =
+      '${GlobalConfiguration().getValue('api_base_url')}/creator/get-default-link';
+  try {
+    final response = await client
+        .get(
+          Uri.parse(url),
+          headers: {
+            HttpHeaders.contentTypeHeader: 'application/json',
+            HttpHeaders.authorizationHeader:
+                'Bearer ${currentuser.value.token}',
+          },
+        )
+        .timeout(Duration(seconds: 60));
+
+    print(response.body);
+    if (response.statusCode == 200) {
+      DefaultLinkModel userModel = DefaultLinkModel.fromJson(
+        json.decode(response.body),
+      );
+      return userModel;
+    } else {
+      return null;
+    }
+  } on TimeoutException catch (e) {
+    print(e.message);
+    return null;
+  } on SocketException catch (e, s) {
+    return null;
+  } on Error catch (e, s) {
+    print("error");
+    print('Caught error: $e');
+    print('Stack trace: $s');
+    return null;
+  }
+}
+
+Future<DefaultLinkModel?> make_default_link(Map map) async {
+  final String url =
+      '${GlobalConfiguration().getValue('api_base_url')}/creator/make-default-link';
+
+  try {
+    final response = await client
+        .post(
+          Uri.parse(url),
+          headers: {
+            HttpHeaders.contentTypeHeader: 'application/json',
+            HttpHeaders.authorizationHeader:
+                'Bearer ${currentuser.value.token}',
+          },
+          body: json.encode(map),
+        )
+        .timeout(Duration(seconds: 60));
+
+    if (kDebugMode) {
+      print(response.body);
+      print("response_code");
+    }
+    if (response.statusCode == 200) {
+      DefaultLinkModel userModel = DefaultLinkModel.fromJson(
+        json.decode(response.body),
+      );
+
+      return userModel;
+    } else {
+      return null;
+    }
+  } on TimeoutException catch (e) {
+    if (kDebugMode) {
+      print(e.message);
+    }
+    return null;
+  } on SocketException catch (e) {
+    return null;
+  } on Error catch (e) {
+    if (kDebugMode) {
+      print("error");
+    }
+    if (kDebugMode) {
+      print(e.stackTrace);
+    }
     return null;
   }
 }
@@ -341,7 +467,9 @@ Future<PaymentLinkModel?> create_payment_link_with_file(
 
     var responseB = await http.Response.fromStream(response);
 
-    print(response.statusCode);
+    if (kDebugMode) {
+      print(response.statusCode);
+    }
     if (response.statusCode == 200) {
       PaymentLinkModel uploadIdModel = PaymentLinkModel.fromJson(
         jsonDecode(responseB.body),

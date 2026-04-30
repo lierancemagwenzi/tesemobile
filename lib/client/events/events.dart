@@ -1,43 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:mvc_pattern/mvc_pattern.dart';
+import 'package:smacredit/client/controller/client_user_controller.dart';
+import 'package:smacredit/client/events/all_live_events.dart';
+import 'package:smacredit/client/events/client_live_event_details.dart';
+import 'package:smacredit/client/events/upcoming_events.dart';
+import 'package:smacredit/src/content-creator/events/models/event_model.dart';
 import 'package:smacredit/src/theme/app_theme.dart';
-
-// --- DUMMY MODELS ---
-class LiveSession {
-  final String title;
-  final String creator;
-  final String category;
-  final String viewerCount;
-  final String timeAgo;
-  final String price;
-  final String imageUrl;
-  LiveSession({
-    required this.title,
-    required this.creator,
-    required this.category,
-    required this.viewerCount,
-    required this.timeAgo,
-    required this.price,
-    required this.imageUrl,
-  });
-}
-
-class UpcomingEvent {
-  final String title;
-  final String creator;
-  final String date;
-  final String registered;
-  final String price;
-  final String imageUrl;
-  UpcomingEvent({
-    required this.title,
-    required this.creator,
-    required this.date,
-    required this.registered,
-    required this.price,
-    required this.imageUrl,
-  });
-}
 
 // --- LIVE EVENTS WIDGET ---
 class LiveEventsWidget extends StatefulWidget {
@@ -49,47 +17,18 @@ class LiveEventsWidget extends StatefulWidget {
 
 class _LiveEventsWidgetState extends StateMVC<LiveEventsWidget> {
   // MOCK DATA
-  final List<LiveSession> liveNow = [
-    LiveSession(
-      title: "React Advanced Patterns",
-      creator: "TechMasterPro",
-      category: "Development",
-      viewerCount: "1,247",
-      timeAgo: "25 mins ago",
-      price: "Join \$9.99",
-      imageUrl: "https://fail.com/1",
-    ),
-    LiveSession(
-      title: "Professional Photography",
-      creator: "Sarah Mitchell",
-      category: "Photography",
-      viewerCount: "856",
-      timeAgo: "10 mins ago",
-      price: "Join \$14.99",
-      imageUrl: "https://fail.com/2",
-    ),
-  ];
 
-  final List<UpcomingEvent> upcoming = [
-    UpcomingEvent(
-      title: "Marketing Strategy 2024",
-      creator: "James Cooper",
-      date: "Today at 6:00 PM",
-      registered: "523 registered",
-      price: "\$19.99",
-      imageUrl: "https://fail.com/3",
-    ),
-    UpcomingEvent(
-      title: "UI/UX Design Workshop",
-      creator: "Emma Davis",
-      date: "Tomorrow at 3:00 PM",
-      registered: "892 registered",
-      price: "\$12.99",
-      imageUrl: "https://fail.com/4",
-    ),
-  ];
+  late ClientUserController _con;
 
-  _LiveEventsWidgetState() : super(null);
+  _LiveEventsWidgetState() : super(ClientUserController()) {
+    _con = controller as ClientUserController;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _con.listenForEventDashboad();
+  }
 
   // Image Helper with themed error placeholders
   Widget _buildNetworkImage(
@@ -127,30 +66,85 @@ class _LiveEventsWidgetState extends StateMVC<LiveEventsWidget> {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        automaticallyImplyLeading: false,
         elevation: 0,
         centerTitle: true,
-        title: Image.network(
-          "https://via.placeholder.com/100x40?text=Tese",
-          height: 25,
-          errorBuilder: (c, e, s) => const Text("Tese Africa"),
-        ),
+        title: Text("Tese Africa"),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: TextButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute<void>(
+                    builder: (context) => ClientLiveEventsWidget(),
+                  ),
+                ).then((e) {
+                  _con.listenForEventDashboad();
+                });
+              },
+              style: TextButton.styleFrom(
+                foregroundColor: const Color(0xFF00D285), // Your brandGreen
+                textStyle: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              child: const Text("EXPLORE"),
+            ),
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildHeader(),
-            _buildSectionHeader("Live Now", true, '/LiveEvents'),
+            _buildSectionHeader("Live Now", true, '/LiveEvents', () {
+              Navigator.push(
+                context,
+                MaterialPageRoute<void>(
+                  builder: (context) => ClientEventListGroup(
+                    type: EventGroupType.live,
+                    title: 'Live events',
+                  ),
+                ),
+              ).then((e) {
+                _con.listenForEventDashboad();
+              });
+            }),
             _buildLiveList(isDark),
-            _buildSectionHeader("Upcoming Events", true, '/UpcomingEvents'),
+            _buildSectionHeader("Upcoming Events", true, '/UpcomingEvents', () {
+              Navigator.push(
+                context,
+                MaterialPageRoute<void>(
+                  builder: (context) => ClientEventListGroup(
+                    type: EventGroupType.upcoming,
+                    title: 'Upcoming events',
+                  ),
+                ),
+              ).then((e) {
+                _con.listenForEventDashboad();
+              });
+            }),
             _buildUpcomingList(isDark),
-            _buildSectionHeader("Past Events - Watch Recording", false, null),
+            _buildSectionHeader("Past Events", true, '/Past', () {
+              Navigator.push(
+                context,
+                MaterialPageRoute<void>(
+                  builder: (context) => ClientEventListGroup(
+                    type: EventGroupType.past,
+                    title: 'Past events',
+                  ),
+                ),
+              ).then((e) {
+                _con.listenForEventDashboad();
+              });
+            }),
 
-            _buildSectionSubHeader(
-              "Past Events - Watch Recording",
-              true,
-              '/PastEvents',
-            ),
+            // _buildSectionSubHeader("Past Events ", true, '/PastEvents'),
             _buildPastEventsGrid(isDark),
             const SizedBox(height: 100),
           ],
@@ -219,6 +213,7 @@ class _LiveEventsWidgetState extends StateMVC<LiveEventsWidget> {
     String title,
     bool showViewAll,
     String? routeName,
+    VoidCallback callback,
   ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -246,7 +241,7 @@ class _LiveEventsWidgetState extends StateMVC<LiveEventsWidget> {
           if (showViewAll && routeName != null)
             InkWell(
               onTap: () {
-                Navigator.pushNamed(context, routeName);
+                callback();
               },
               child: Text(
                 "View All",
@@ -258,85 +253,105 @@ class _LiveEventsWidgetState extends StateMVC<LiveEventsWidget> {
     );
   }
 
+  goToEvent(EventModel event) {
+    Navigator.push(
+      context,
+      MaterialPageRoute<void>(
+        builder: (context) => ClientEventDetailsScreen(event: event),
+      ),
+    );
+  }
+
   Widget _buildLiveList(bool isDark) {
     return Column(
-      children: liveNow
+      children: (_con.eventDashboardResponse?.live ?? [])
           .map(
             (session) => Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Stack(
-                    children: [
-                      _buildNetworkImage(session.imageUrl),
-                      Positioned(
-                        top: 10,
-                        left: 10,
-                        child: _badge(brandRed, "● LIVE"),
-                      ),
-                      Positioned(
-                        top: 10,
-                        right: 10,
-                        child: _badge(
-                          Colors.black54,
-                          "👁 ${session.viewerCount}",
+              child: InkWell(
+                onTap: () {
+                  goToEvent(session);
+                },
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Stack(
+                      children: [
+                        _buildNetworkImage(session.thumbnail ?? ""),
+                        Positioned(
+                          top: 10,
+                          left: 10,
+                          child: _badge(brandRed, "● LIVE"),
                         ),
-                      ),
-                      Positioned(
-                        bottom: 10,
-                        left: 10,
-                        child: _badge(brandGreen, session.category),
-                      ),
-                      Positioned(
-                        bottom: 10,
-                        right: 10,
-                        child: _badge(Colors.black54, session.timeAgo),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    session.title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                        Positioned(
+                          top: 10,
+                          right: 10,
+                          child: _badge(
+                            Colors.black54,
+                            "👁 ${session.purchaseCount}",
+                          ),
+                        ),
+                        Positioned(
+                          bottom: 10,
+                          left: 10,
+                          child: _badge(
+                            brandGreen,
+                            session.organizer?.fullname ?? "",
+                          ),
+                        ),
+                        Positioned(
+                          bottom: 10,
+                          right: 10,
+                          child: _badge(
+                            Colors.black54,
+                            session.startDate.toIso8601String(),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.group_outlined,
-                            size: 16,
-                            color: Colors.grey,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            session.creator,
-                            style: const TextStyle(color: Colors.grey),
-                          ),
-                        ],
+                    const SizedBox(height: 12),
+                    Text(
+                      session.title,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
                       ),
-                      ElevatedButton(
-                        onPressed: () {},
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: brandRed,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.group_outlined,
+                              size: 16,
+                              color: Colors.grey,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              session.organizer?.fullname ?? "",
+                              style: const TextStyle(color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                        ElevatedButton(
+                          onPressed: () {},
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: brandRed,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                          ),
+                          child: Text(
+                            session.price.toStringAsFixed(2),
+                            style: const TextStyle(color: Colors.white),
                           ),
                         ),
-                        child: Text(
-                          session.price,
-                          style: const TextStyle(color: Colors.white),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const Divider(),
-                ],
+                      ],
+                    ),
+                    const Divider(),
+                  ],
+                ),
               ),
             ),
           )
@@ -346,98 +361,107 @@ class _LiveEventsWidgetState extends StateMVC<LiveEventsWidget> {
 
   Widget _buildUpcomingList(bool isDark) {
     return Column(
-      children: upcoming
+      children: (_con.eventDashboardResponse?.nextUpcoming ?? [])
           .map(
-            (event) => Container(
-              margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF161B22) : Colors.white,
-                borderRadius: BorderRadius.circular(15),
-                boxShadow: [
-                  if (!isDark)
-                    const BoxShadow(color: Colors.black12, blurRadius: 10),
-                ],
-              ),
-              child: Row(
-                children: [
-                  _buildNetworkImage(event.imageUrl, width: 80, height: 80),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                event.title,
-                                style: const TextStyle(
+            (event) => InkWell(
+              onTap: () {
+                goToEvent(event);
+              },
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF161B22) : Colors.white,
+                  borderRadius: BorderRadius.circular(15),
+                  boxShadow: [
+                    if (!isDark)
+                      const BoxShadow(color: Colors.black12, blurRadius: 10),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    _buildNetworkImage(
+                      event.thumbnail ?? "",
+                      width: 80,
+                      height: 80,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  event.title,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                event.price.toStringAsFixed(2),
+                                style: TextStyle(
+                                  color: brandGreen,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                            ),
-                            Text(
-                              event.price,
-                              style: TextStyle(
-                                color: brandGreen,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                        Text(
-                          event.creator,
-                          style: const TextStyle(
-                            color: Colors.grey,
-                            fontSize: 12,
+                            ],
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.access_time,
-                              size: 12,
-                              color: Colors.orange,
-                            ),
-                            Text(
-                              " ${event.date}",
-                              style: const TextStyle(fontSize: 11),
-                            ),
-                          ],
-                        ),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.people_outline,
-                              size: 12,
+                          Text(
+                            event.organizer?.fullname ?? "",
+                            style: const TextStyle(
                               color: Colors.grey,
+                              fontSize: 12,
                             ),
-                            Text(
-                              " ${event.registered}",
-                              style: const TextStyle(fontSize: 11),
-                            ),
-                          ],
-                        ),
-                      ],
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.access_time,
+                                size: 12,
+                                color: Colors.orange,
+                              ),
+                              Text(
+                                " ${event.startDate.toIso8601String()}",
+                                style: const TextStyle(fontSize: 11),
+                              ),
+                            ],
+                          ),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.people_outline,
+                                size: 12,
+                                color: Colors.grey,
+                              ),
+                              Text(
+                                " ${event.hasPurchased ? 'Registred' : 'Not Registered'}",
+                                style: const TextStyle(fontSize: 11),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: brandGreen,
-                      shape: BoxShape.circle,
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: brandGreen,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.notifications_none,
+                        color: Colors.white,
+                        size: 18,
+                      ),
                     ),
-                    child: const Icon(
-                      Icons.notifications_none,
-                      color: Colors.white,
-                      size: 18,
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           )
@@ -450,61 +474,67 @@ class _LiveEventsWidgetState extends StateMVC<LiveEventsWidget> {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       padding: const EdgeInsets.all(20),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         mainAxisSpacing: 15,
         crossAxisSpacing: 15,
         childAspectRatio: 0.8,
       ),
-      itemCount: 2,
+      itemCount: (_con.eventDashboardResponse?.past ?? []).length,
       itemBuilder: (context, index) {
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Stack(
-              alignment: Alignment.center,
-              children: [
-                _buildNetworkImage("https://fail.com", height: 150),
-                const Icon(
-                  Icons.play_circle_fill,
-                  color: Colors.white70,
-                  size: 40,
-                ),
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: _badge(Colors.orange, "⭐ 4.9"),
-                ),
-                Positioned(
-                  bottom: 8,
-                  left: 8,
-                  child: _badge(Colors.black54, "👁 3,421"),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              "JavaScript Pro Tips",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  "TechMasterPro",
-                  style: TextStyle(color: Colors.grey, fontSize: 11),
-                ),
-                Text(
-                  "\$9.99",
-                  style: TextStyle(
-                    color: brandGreen,
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
+        EventModel event = (_con.eventDashboardResponse?.past ?? [])[index];
+        return InkWell(
+          onTap: () {
+            goToEvent(event);
+          },
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                  _buildNetworkImage(event.thumbnail ?? "", height: 150),
+                  const Icon(
+                    Icons.play_circle_fill,
+                    color: Colors.white70,
+                    size: 40,
                   ),
-                ),
-              ],
-            ),
-          ],
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: _badge(Colors.orange, "⭐ ${event.rating}"),
+                  ),
+                  Positioned(
+                    bottom: 8,
+                    left: 8,
+                    child: _badge(Colors.black54, "👁 ${event.views}"),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                "${event.title}",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "${event.organizer?.fullname ?? ''}",
+                    style: TextStyle(color: Colors.grey, fontSize: 11),
+                  ),
+                  Text(
+                    "${event.currency}${event.price.toStringAsFixed(2)}",
+                    style: TextStyle(
+                      color: brandGreen,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         );
       },
     );

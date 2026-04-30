@@ -1,6 +1,10 @@
 # Uncomment this line to define a global platform for your project
 platform :ios, '16.0'
 
+# Skip deterministic UUID computation — biggest win for "Generating Pods project" speed
+install! 'cocoapods',
+         :deterministic_uuids => false
+
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
 
@@ -29,6 +33,7 @@ flutter_ios_podfile_setup
 
 target 'Runner' do
   use_frameworks!
+  inhibit_all_warnings!
 
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
   target 'RunnerTests' do
@@ -39,5 +44,24 @@ end
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
+    target.build_configurations.each do |config|
+      # Disable index-while-building (major slowdown culprit)
+      config.build_settings['COMPILER_INDEX_STORE_ENABLE'] = 'NO'
+      # Skip SwiftUI previews processing
+      config.build_settings['ENABLE_PREVIEWS'] = 'NO'
+    end
+  end
+
+  # Enable ccache for faster C/C++/ObjC compilation
+  ccache_path = `which ccache`.strip
+  unless ccache_path.empty?
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        config.build_settings['CC'] = "#{ccache_path} clang"
+        config.build_settings['CXX'] = "#{ccache_path} clang++"
+        config.build_settings['LD'] = 'clang'
+        config.build_settings['LDPLUSPLUS'] = 'clang++'
+      end
+    end
   end
 end

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:mvc_pattern/mvc_pattern.dart';
 import 'package:smacredit/client/controller/client_user_controller.dart';
 import 'package:smacredit/client/models/dashboard_model.dart';
+import 'package:smacredit/src/repositories/user_repository.dart';
 
 class TeseCategoryExplorer extends StatefulWidget {
   const TeseCategoryExplorer({super.key});
@@ -69,6 +70,8 @@ class _TeseCategoryExplorerState extends StateMVC<TeseCategoryExplorer> {
         ? CachedNetworkImage(
             imageUrl: url,
             fit: BoxFit.cover,
+            httpHeaders: {'Cookie': cloudFrontCookieNotifier.value},
+
             width: width,
             height: height,
             // 1. Placeholder shown while downloading
@@ -138,6 +141,119 @@ class _TeseCategoryExplorerState extends StateMVC<TeseCategoryExplorer> {
           );
   }
 
+  Widget _buildImageCard(Category cat) {
+    // Use the color from your model, fallback to a Tese Red if null
+    final Color categoryColor = Color(
+      int.parse(cat.color?.replaceAll('#', '0xFF') ?? '0xFFFF3B30'),
+    );
+
+    return InkWell(
+      onTap: () => Navigator.pushNamed(context, '/Cat', arguments: cat),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                color: categoryColor,
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: Stack(
+                children: [
+                  // 1. The Bi-color split (Top half darker)
+                  Column(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.2),
+                            borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(24),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const Expanded(child: SizedBox()),
+                    ],
+                  ),
+
+                  // 2. The Central Cover Image
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(20),
+                        child: AspectRatio(
+                          aspectRatio: 1,
+                          child: _buildNetworkImage(cat.image ?? ""),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // 3. Floating Icon (Top Left)
+                  // Positioned(
+                  //   top: 12,
+                  //   left: 12,
+                  //   child: Container(
+                  //     padding: const EdgeInsets.all(8),
+                  //     decoration: BoxDecoration(
+                  //       color: categoryColor, // Or use cat.color
+                  //       borderRadius: BorderRadius.circular(12),
+                  //     ),
+                  //     child: _buildNetworkImage(
+                  //       cat.icon ?? "",
+                  //       width: 24,
+                  //       height: 24,
+                  //     ),
+                  //   ),
+                  // ),
+
+                  // 4. Video Count Chip (Bottom Right)
+                  // Positioned(
+                  //   bottom: 12,
+                  //   right: 12,
+                  //   child: Container(
+                  //     padding: const EdgeInsets.symmetric(
+                  //       horizontal: 10,
+                  //       vertical: 6,
+                  //     ),
+                  //     decoration: BoxDecoration(
+                  //       color: Colors.black.withOpacity(0.6),
+                  //       borderRadius: BorderRadius.circular(12),
+                  //     ),
+                  //     child: const Text(
+                  //       "2+ videos",
+                  //       style: TextStyle(
+                  //         color: Colors.white,
+                  //         fontSize: 10,
+                  //         fontWeight: FontWeight.bold,
+                  //       ),
+                  //     ),
+                  //   ),
+                  // ),
+                ],
+              ),
+            ),
+          ),
+
+          // 5. Category Name (Outside the card at the bottom)
+          Padding(
+            padding: const EdgeInsets.only(top: 8.0, left: 4),
+            child: Text(
+              cat.name ?? "Category",
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.white, // Assuming dark theme based on Tese Navy
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // --- UI BUILDING METHODS ---
   Widget _buildGrid(List<Category> list) {
     return GridView.builder(
@@ -153,7 +269,7 @@ class _TeseCategoryExplorerState extends StateMVC<TeseCategoryExplorer> {
     );
   }
 
-  Widget _buildImageCard(Category cat) {
+  Widget _buildImageCard1(Category cat) {
     return InkWell(
       onTap: () {
         Navigator.pushNamed(context, '/Cat', arguments: cat);

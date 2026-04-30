@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:mvc_pattern/mvc_pattern.dart';
+import 'package:smacredit/client/controller/client_user_controller.dart';
+import 'package:smacredit/src/content-creator/events/models/event_model.dart';
 
 // --- DATA MODEL ---
 class PastEvent {
@@ -28,47 +31,25 @@ class PastEventsWidget extends StatefulWidget {
   _PastEventsWidgetState createState() => _PastEventsWidgetState();
 }
 
-class _PastEventsWidgetState extends State<PastEventsWidget> {
+class _PastEventsWidgetState extends StateMVC<PastEventsWidget> {
   final Color brandGreen = const Color(0xFF00D285);
   final TextEditingController _searchController = TextEditingController();
 
-  // 1. DUMMY LIST OF 10 ITEMS
-  final List<PastEvent> _allPastEvents = List.generate(10, (index) {
-    return PastEvent(
-      title: index % 2 == 0
-          ? "JavaScript Pro Tips"
-          : "Mobile Photography Guide",
-      creator: index % 2 == 0 ? "TechMasterPro" : "Sarah Mitchell",
-      rating: (4.5 + (index % 5) / 10).toStringAsFixed(1),
-      views: "${2000 + (index * 125)}",
-      date: "Dec ${20 + (index % 5)}, 2025",
-      price: "\$9.99",
-      imageUrl: "https://invalid-link.com/past_$index",
-    );
-  });
+  late ClientUserController _con;
 
-  List<PastEvent> _filteredEvents = [];
+  _PastEventsWidgetState() : super(ClientUserController()) {
+    _con = controller as ClientUserController;
+  }
 
   @override
   void initState() {
     super.initState();
-    _filteredEvents = _allPastEvents;
     _searchController.addListener(_onSearchChanged);
   }
 
   void _onSearchChanged() {
     setState(() {
-      _filteredEvents = _allPastEvents
-          .where(
-            (e) =>
-                e.title.toLowerCase().contains(
-                  _searchController.text.toLowerCase(),
-                ) ||
-                e.creator.toLowerCase().contains(
-                  _searchController.text.toLowerCase(),
-                ),
-          )
-          .toList();
+
     });
   }
 
@@ -77,7 +58,25 @@ class _PastEventsWidgetState extends State<PastEventsWidget> {
     _searchController.dispose();
     super.dispose();
   }
+  List<EventModel> get _filteredEvents {
+    if (_searchController.text.isEmpty) {
+      return _con.events;
+    }
 
+    List<EventModel> _filteredSessions = _con.events
+        .where(
+          (s) =>
+              s.title.toLowerCase().contains(
+                _searchController.text.toLowerCase(),
+              ) ||
+              (s.organizer?.name ?? "").toLowerCase().contains(
+                _searchController.text.toLowerCase(),
+              ),
+        )
+        .toList();
+
+    return _filteredSessions;
+  }
   @override
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
@@ -145,7 +144,7 @@ class _PastEventsWidgetState extends State<PastEventsWidget> {
     );
   }
 
-  Widget _buildPastEventCard(PastEvent event, bool isDark) {
+  Widget _buildPastEventCard(EventModel event, bool isDark) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -156,7 +155,7 @@ class _PastEventsWidgetState extends State<PastEventsWidget> {
             ClipRRect(
               borderRadius: BorderRadius.circular(15),
               child: Image.network(
-                event.imageUrl,
+                event.thumbnail??"",
                 height: 150,
                 width: double.infinity,
                 fit: BoxFit.cover,
@@ -192,7 +191,7 @@ class _PastEventsWidgetState extends State<PastEventsWidget> {
             Positioned(
               bottom: 8,
               right: 8,
-              child: _badge(Colors.black54, event.date),
+              child: _badge(Colors.black54, event.startDate.toIso8601String()),
             ),
           ],
         ),
@@ -209,13 +208,13 @@ class _PastEventsWidgetState extends State<PastEventsWidget> {
           children: [
             Expanded(
               child: Text(
-                event.creator,
+                event.organizer?.fullname??"",
                 style: const TextStyle(color: Colors.grey, fontSize: 11),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
             Text(
-              event.price,
+              event.price.toStringAsFixed(2),
               style: TextStyle(
                 color: brandGreen,
                 fontWeight: FontWeight.bold,

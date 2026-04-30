@@ -1,8 +1,8 @@
-import 'package:country_picker/country_picker.dart';
 import 'package:smacredit/src/auth/models/UploadIDModel.dart';
+import 'package:smacredit/src/auth/models/country_model.dart';
 
 class RegistrationDocumentsModel{
-  Country? country;
+  CountryModel? country;
 
   UploadIdModel selfie;
   String type;

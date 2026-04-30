@@ -18,6 +18,8 @@ class ThemeService {
     }
     final prefs = await SharedPreferences.getInstance();
     final bool isDarkMode = prefs.getBool(_themeKey) ?? false;
+
+    return ThemeMode.dark;
     return isDarkMode ? ThemeMode.dark : ThemeMode.light;
   }
 }

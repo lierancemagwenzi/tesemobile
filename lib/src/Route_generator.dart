@@ -1,11 +1,18 @@
-import 'package:country_picker/country_picker.dart';
+import 'package:smacredit/main.dart' as main;
+import 'package:smacredit/src/auth/models/country_model.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:smacredit/client/categories/categories.dart';
+import 'package:smacredit/client/channels/artist_widget.dart';
 import 'package:smacredit/client/channels/category_channels.dart';
 import 'package:smacredit/client/channels/channel.dart';
+import 'package:smacredit/client/channels/channel_widget.dart';
+import 'package:smacredit/client/channels/following_channels.dart';
 import 'package:smacredit/client/channels/playlist.dart';
+import 'package:smacredit/client/creators/following_creators.dart';
 import 'package:smacredit/client/downloads/widgets/downloads.dart';
+import 'package:smacredit/client/libary/personal_playlist_widget.dart';
+import 'package:smacredit/client/libary/personal_playlists.dart';
 import 'package:smacredit/client/models/dashboard_model.dart' as ds;
 
 import 'package:smacredit/client/categories/category.dart';
@@ -16,13 +23,21 @@ import 'package:smacredit/client/events/past_events.dart';
 import 'package:smacredit/client/events/upcoming_events.dart';
 import 'package:smacredit/client/home/dashboad.dart';
 import 'package:smacredit/client/models/dashboard_model.dart';
+import 'package:smacredit/client/models/media_response.dart';
+import 'package:smacredit/client/models/personal_playlist.dart';
 import 'package:smacredit/client/payments/transaction_history_widget.dart';
 import 'package:smacredit/client/payments/visa_matercard_payment.dart';
 import 'package:smacredit/client/payments/widgets/ecocash_payment.dart';
+import 'package:smacredit/client/players/media_dispatecher.dart';
+import 'package:smacredit/client/downloads/download_record.dart';
+import 'package:smacredit/client/downloads/downloaddb.dart';
+import 'package:smacredit/client/players/offline_audio_player.dart';
+import 'package:smacredit/client/players/tese_audio_player.dart';
 import 'package:smacredit/client/players/video_player_widget.dart';
 import 'package:smacredit/client/profile/account_settings.dart';
 import 'package:smacredit/client/profile/contact-us.dart';
 import 'package:smacredit/client/profile/personal_details.dart';
+import 'package:smacredit/client/search/search_widget.dart';
 import 'package:smacredit/src/addresses/AddAddressWidget.dart';
 import 'package:smacredit/src/addresses/AddNextOfKinWidget.dart';
 import 'package:smacredit/src/addresses/AddressesWidget.dart';
@@ -30,6 +45,8 @@ import 'package:smacredit/src/addresses/NextOfKinModel.dart';
 import 'package:smacredit/src/addresses/SignatureWidget.dart';
 import 'package:smacredit/src/addresses/models/DocumentTypeModel.dart';
 import 'package:smacredit/src/auth/widgets/landing_screen.dart';
+import 'package:smacredit/src/auth/widgets/signup_method_screen.dart';
+import 'package:smacredit/src/auth/models/sign_up_type.dart';
 import 'package:smacredit/src/auth/widgets/models/CheckEmailWidget.dart';
 import 'package:smacredit/src/auth/widgets/models/FirstWidget.dart';
 import 'package:smacredit/src/auth/widgets/models/ForgotPasswordWidget.dart';
@@ -55,6 +72,7 @@ import 'package:smacredit/src/content-creator/widgets/trailer_player.dart';
 import 'package:smacredit/src/content-creator/widgets/update_channe.dart';
 import 'package:smacredit/src/content-creator/widgets/update_playlist.dart';
 import 'package:smacredit/src/content-creator/widgets/update_video.dart';
+import 'package:smacredit/src/content-creator/widgets/uploadProgress.dart';
 import 'package:smacredit/src/content-creator/widgets/video_description.dart';
 import 'package:smacredit/src/content-creator/widgets/video_player.dart';
 import 'package:smacredit/src/credit/PaymentWidget.dart';
@@ -89,6 +107,7 @@ import 'package:smacredit/src/profile/widgets/update_banking_info.dart';
 import 'package:smacredit/src/profile/widgets/update_payment_profile.dart';
 import 'package:smacredit/src/profile/widgets/update_profile_info.dart';
 import 'package:smacredit/src/profile/widgets/upload_document.dart';
+import 'package:smacredit/src/repositories/settings_repository.dart';
 import 'package:smacredit/src/repositories/user_repository.dart';
 import 'package:smacredit/src/scanner/IDScanner.dart';
 import 'package:smacredit/src/splash/splashscreen.dart';
@@ -103,6 +122,7 @@ import 'credit/ScanToPay.dart';
 class RouteGenerator {
   static Route<dynamic> generateRoute(RouteSettings settings) {
     final args = settings.arguments;
+    currentRouteName.value = settings.name;
     switch (settings.name) {
       case '/Splash':
         return CupertinoPageRoute(builder: (_) => SplashScreen());
@@ -118,17 +138,21 @@ class RouteGenerator {
 
       //events
 
-      case '/LiveEvents':
-        return CupertinoPageRoute(builder: (_) => ViewLiveEventsWidget());
+      // case '/LiveEvents':
+      //   return CupertinoPageRoute(builder: (_) => ViewLiveEventsWidget());
 
-      case '/UpcomingEvents':
-        return CupertinoPageRoute(
-          builder: (_) => ViewAllUpcomingEventsWidget(),
-        );
+      case '/Uploads':
+        return CupertinoPageRoute(builder: (_) => UploadProgressScreen());
+
+      // case '/UpcomingEvents':
+      //   return CupertinoPageRoute(
+      //     builder: (_) => ViewAllUpcomingEventsWidget(),
+      //   );
 
       case '/PastEvents':
         return CupertinoPageRoute(builder: (_) => PastEventsWidget());
-
+      case '/Search':
+        return CupertinoPageRoute(builder: (_) => SearchWidget());
       case '/Downloads':
         return CupertinoPageRoute(builder: (_) => DownloadsScreen());
 
@@ -136,7 +160,7 @@ class RouteGenerator {
       case '/Player':
         final args = settings.arguments as Map;
         return CupertinoPageRoute(
-          builder: (_) => TeseVideoPlayerWidget(
+          builder: (_) => MediaDispatcherScreen(
             // channel: args['channel'] as Channel,
             video: args['video'] as Video,
           ),
@@ -149,8 +173,21 @@ class RouteGenerator {
           builder: (_) => RegistrationSelectCountryWidget(),
         );
 
+      case '/SignUpMethod':
+        return CupertinoPageRoute(
+          builder: (_) =>
+              SignUpMethodScreen(countryModel: args as CountryModel),
+        );
+
       case '/CheckEmail':
-        return CupertinoPageRoute(builder: (_) => CheckEmailWidget());
+        final checkEmailArgs = args as Map<String, dynamic>?;
+        return CupertinoPageRoute(
+          builder: (_) => CheckEmailWidget(
+            signUpType: checkEmailArgs?['signUpType'] as SignUpType? ??
+                SignUpType.supporter,
+            countryModel: checkEmailArgs?['countryModel'] as CountryModel?,
+          ),
+        );
       case '/Category':
         return CupertinoPageRoute(
           builder: (_) => CategoryWidget(category: args as ds.Category),
@@ -160,6 +197,9 @@ class RouteGenerator {
 
       case '/CreatorExplorer':
         return CupertinoPageRoute(builder: (_) => CreatorGallery());
+
+      case '/FollowedCreators':
+        return CupertinoPageRoute(builder: (_) => FollowingCreators());
 
       case '/PlaylistVideos':
         final args = settings.arguments as Map;
@@ -173,7 +213,7 @@ class RouteGenerator {
 
       case '/CreatorProfile':
         return CupertinoPageRoute(
-          builder: (_) => CreatorProfileScreen(user: args as user.User),
+          builder: (_) => ArtistChannelStyleScreen(artist: args as user.User),
         );
 
       case '/PersonalDetails':
@@ -186,8 +226,7 @@ class RouteGenerator {
 
       case '/CreatorChannelView':
         return CupertinoPageRoute(
-          builder: (_) =>
-              ClientChannelPlaylistsWidget(channel: args as Channel),
+          builder: (_) => YouTubeStyleChannelScreen(channel: args as Channel),
         );
 
       case '/VideoPlayer':
@@ -201,17 +240,15 @@ class RouteGenerator {
             video: args['video'] as Video,
             channel: args['channel'] as Channel,
             playlist: args['playlist'] as Playlist,
+            isTrailer: false,
+            // isTrailer: args['isTrailer'] as bool,
           ),
         );
 
       case '/VideoTrailer':
         final args = settings.arguments as Map;
         return CupertinoPageRoute(
-          builder: (_) => TrailerPlayerWidget(
-            video: args['video'] as Video,
-            channel: args['channel'] as Channel,
-            playlist: args['playlist'] as Playlist,
-          ),
+          builder: (_) => TrailerPlayerWidget(video: args['video'] as Video),
         );
 
       case '/UpdateProfile':
@@ -283,6 +320,8 @@ class RouteGenerator {
         return CupertinoPageRoute(
           builder: (_) => ChannelsDirectoryScreen(category: args as Category),
         );
+      case '/LikedChannels':
+        return CupertinoPageRoute(builder: (_) => FollowingChannelsWidget());
 
       case '/PaymentLinkDetails':
         Map<String, dynamic> data = args as Map<String, dynamic>;
@@ -390,12 +429,14 @@ class RouteGenerator {
         );
       case '/RegistrationImages':
         return CupertinoPageRoute(
-          builder: (_) => RegistrationImagesWidget(country: args as Country),
+          builder: (_) =>
+              RegistrationImagesWidget(country: args as CountryModel),
         );
 
       case '/ClientRegistration':
         return CupertinoPageRoute(
-          builder: (_) => ClientRegistrationWidget(country: args as Country),
+          builder: (_) =>
+              ClientRegistrationWidget(country: args as CountryModel),
         );
 
       case '/IDPicker':
@@ -443,11 +484,74 @@ class RouteGenerator {
             return ChannelPreview(channel: args as Channel);
           },
         );
+      case "/PersonalPlaylist":
+        return MaterialPageRoute(
+          builder: (BuildContext context) {
+            return PersonalPlaylistItemsScreen(
+              personalPlaylist: args as PersonalPlaylist,
+            );
+          },
+        );
 
       case "/CreatePlaylist":
         return MaterialPageRoute(
           builder: (BuildContext context) {
             return FacebookCreatePlaylist(channel: args as Channel);
+          },
+        );
+      case "/PersonalPlaylists":
+        return MaterialPageRoute(
+          builder: (BuildContext context) {
+            return PersonalPlaylistList();
+          },
+        );
+
+      case "/TeseAudoPlayer":
+        // final ar = args as Map;
+        return MaterialPageRoute(
+          settings: const RouteSettings(name: '/TeseAudoPlayer'),
+          builder: (BuildContext context) {
+            return TeseAudioPlayerScreen(
+              // video: ar['video'] as Video,
+              // videos: ar['videos'] != null ? ar['videos'] as List<Video> : [],
+              // ads: ar['ads'] != null ? ar['ads'] as List<AdModel> : [],
+              // mediaResponse: ar['media'] as MediaResponse,
+            );
+          },
+        );
+
+      case "/OfflineAudioPlayer":
+        return MaterialPageRoute(
+          settings: const RouteSettings(name: '/OfflineAudioPlayer'),
+          builder: (BuildContext context) {
+            return FutureBuilder<List<DownloadRecord>>(
+              future: DownloadDB.getCompletedDownloads().then(
+                (all) => all.where((r) => r.isMusic).toList(),
+              ),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return const Scaffold(
+                    body: Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFF00D285),
+                      ),
+                    ),
+                  );
+                }
+                final records = snapshot.data!;
+                if (records.isEmpty) {
+                  return const Scaffold(
+                    body: Center(child: Text('No offline music available')),
+                  );
+                }
+                final currentId = main.teseAudioHandler.currentVideo?.id;
+                final index = records.indexWhere((r) => r.videoId == currentId);
+                return OfflineAudioPlayerScreen(
+                  records: records,
+                  initialIndex: index < 0 ? 0 : index,
+                );
+              },
+            );
           },
         );
 

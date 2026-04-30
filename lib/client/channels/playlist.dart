@@ -5,11 +5,13 @@ import 'package:mvc_pattern/mvc_pattern.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:smacredit/client/channels/empty_widget.dart';
 import 'package:smacredit/client/controller/client_user_controller.dart';
+import 'package:smacredit/client/models/media_response.dart';
 import 'package:smacredit/client/payments/models/payment.dart';
 import 'package:smacredit/client/payments/models/payment_response.dart';
 import 'package:smacredit/client/payments/widgets/payment_form.dart';
 import 'package:smacredit/client/payments/widgets/payment_widget.dart';
 import 'package:smacredit/client/payments/widgets/qr_code_payment.dart';
+import 'package:smacredit/main.dart';
 import 'package:smacredit/src/content-creator/models/channel_model.dart';
 import 'package:smacredit/src/helpers/Message.dart';
 import 'package:smacredit/src/repositories/user_repository.dart';
@@ -19,10 +21,12 @@ import 'package:smacredit/src/widgets/CustomOverlay.dart';
 
 class PlayListVideosWidget extends StatefulWidget {
   final Playlist playlist;
+  final bool hideMedia;
   // final Channel channel;
   const PlayListVideosWidget({
     super.key,
     required this.playlist,
+    this.hideMedia = false,
     // required this.channel,
   });
 
@@ -65,11 +69,10 @@ class _PlayListVideosWidgetState extends StateMVC<PlayListVideosWidget> {
             onTap: () {
               Navigator.pop(context);
             },
-
             child: Icon(Icons.arrow_back, color: textColor),
           ),
           title: Text(
-            '${widget.playlist.title ?? ''} playlist',
+            '${widget.playlist.title ?? ''} ${_con.playlist?.isAlbum == true ? 'Album' : 'Playlist'}',
             style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
           ),
           actions: [
@@ -91,37 +94,94 @@ class _PlayListVideosWidgetState extends StateMVC<PlayListVideosWidget> {
                       isDark,
                     ),
 
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 20,
-                      ),
-                      child: Text(
-                        'Videos',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: textColor,
+                    if (widget.hideMedia == false) ...[
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 20,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              _con.playlist?.isAudio == true
+                                  ? "Audios"
+                                  : 'Videos',
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                color: textColor,
+                              ),
+                            ),
+
+                            if (_con.playlist?.isAlbum == true &&
+                                _con.videos.isNotEmpty &&
+                                _con.playlist?.hasPurchased == 1)
+                              InkWell(
+                                onTap: () {
+                                  teseAudioHandler.stop();
+                                  teseAudioHandler.setVideo(
+                                    _con.videos[0],
+                                    _con.videos,
+                                  );
+                                  Navigator.pushReplacementNamed(
+                                    context,
+                                    '/TeseAudoPlayer',
+                                  );
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(
+                                      0xFF00D285,
+                                    ), // Tese Green
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Text(
+                                        'Play all',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      Icon(
+                                        Icons.play_arrow,
+                                        color: Colors.white,
+                                        size: 16,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                       ),
-                    ),
 
-                    // 2. VIDEO LIST
-                    _con.videos.isEmpty
-                        ? TeseEmptyWidget()
-                        : ListView.builder(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
-                            itemCount: _con.videos.length,
-                            itemBuilder: (context, index) =>
-                                _buildVideoListItem(
-                                  textColor,
-                                  subTextColor,
-                                  isDark,
-                                  _con.videos[index],
-                                ),
-                          ),
+                      // 2. VIDEO LIST
+                      _con.videos.isEmpty
+                          ? TeseEmptyWidget()
+                          : ListView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                              ),
+                              itemCount: _con.videos.length,
+                              itemBuilder: (context, index) =>
+                                  _buildVideoListItem(
+                                    textColor,
+                                    subTextColor,
+                                    isDark,
+                                    _con.videos[index],
+                                  ),
+                            ),
+                    ],
                   ],
                 ),
               ),
@@ -164,6 +224,128 @@ class _PlayListVideosWidgetState extends StateMVC<PlayListVideosWidget> {
           _con.playlist?.shouldShowButton['message'],
           style: TextStyle(color: Colors.white),
         ),
+      ),
+    );
+  }
+
+  Widget _buildMetadataSection(bool isDark) {
+    final Color textColor = isDark ? Colors.white : Colors.black;
+    final Color subTextColor = isDark ? Colors.white70 : Colors.black54;
+
+    // Dummy Data - Replace with your _con variables
+    String playlistTitle = _con.playlist?.title ?? "Playlist title";
+    String creatorName = "${_con.channel?.name}";
+    String description = _con.playlist?.description ?? "";
+    const bool isSubscribed = false; // Toggle this to see button state change
+
+    return Padding(
+      padding: const EdgeInsets.all(20.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 1. Playlist Type Label
+          Text(
+            _con.playlist?.isAlbum == true ? "ALBUM" : "PLAYLIST",
+            style: TextStyle(
+              color: const Color(0xFF00D285),
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.2,
+              fontSize: 11,
+            ),
+          ),
+          const SizedBox(height: 8),
+
+          // 2. Main Title
+          Text(
+            playlistTitle,
+            style: TextStyle(
+              color: textColor,
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // 3. Creator Attribution Row
+          Row(
+            children: [
+              _buildNetworkImage(
+                _con.playlist?.thumbnailUrl ?? "",
+                height: 45,
+                width: 45,
+                isCircle: true,
+                isDark: isDark,
+              ),
+              const SizedBox(width: 8),
+              RichText(
+                text: TextSpan(
+                  style: TextStyle(color: textColor, fontSize: 14),
+                  children: [
+                    TextSpan(
+                      text: creatorName,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    TextSpan(
+                      text: " • ${_con.playlist?.videoCount ?? 0} videos",
+                      style: TextStyle(color: subTextColor),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // 4. Description
+          Text(
+            description,
+            style: TextStyle(color: subTextColor, fontSize: 14, height: 1.4),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 20),
+
+          // 5. Subscription Button
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton(
+              onPressed: () {
+                if (_con.playlist?.shouldShowButton['status'] ==
+                    'not_subscribed') {
+                  UtilsHelper.ensureAuth(
+                    context,
+                    action: "to subscribe to playlist",
+                    onAuthenticated: () {
+                      _showPurchaseOptions(_con.playlist!);
+                    },
+                  );
+                  // _showPurchaseOptions(channel);
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isSubscribed
+                    ? Colors.transparent
+                    : const Color(0xFF00D285),
+                foregroundColor: isSubscribed ? textColor : Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(25),
+                  side: isSubscribed
+                      ? BorderSide(color: subTextColor.withOpacity(0.5))
+                      : BorderSide.none,
+                ),
+              ),
+              child: Text(
+                _con.playlist?.shouldShowButton['message'].toUpperCase(),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -226,66 +408,69 @@ class _PlayListVideosWidgetState extends StateMVC<PlayListVideosWidget> {
               ),
             ],
           ),
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${widget.playlist.title}',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: textColor,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${widget.playlist.description}',
-                  style: TextStyle(color: subTextColor, fontSize: 15),
-                ),
-                const SizedBox(height: 10),
-                _buildSubscribeButton(),
-                const SizedBox(height: 16),
-                // Creator Attribution Row
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
 
-                  children: [
-                    _buildNetworkImage(
-                      _con.channel?.logoUrl ?? "",
-                      height: 45,
-                      width: 45,
-                      isCircle: true,
-                      isDark: isDark,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: [
-                          Text(
-                            _con.channel?.name ?? "",
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: textColor,
-                            ),
-                          ),
-                          Text(
-                            _con.channel?.description ?? "",
-                            // maxLines: 1,
-                            // overflow: TextOverflow.ellipsis,
-                            style: TextStyle(color: subTextColor, fontSize: 13),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
+          _buildMetadataSection(isDark),
+
+          // Padding(
+          //   padding: const EdgeInsets.all(20),
+          //   child: Column(
+          //     crossAxisAlignment: CrossAxisAlignment.start,
+          //     children: [
+          //       Text(
+          //         '${widget.playlist.title}',
+          //         style: TextStyle(
+          //           fontSize: 24,
+          //           fontWeight: FontWeight.bold,
+          //           color: textColor,
+          //         ),
+          //       ),
+          //       const SizedBox(height: 4),
+          //       Text(
+          //         '${widget.playlist.description}',
+          //         style: TextStyle(color: subTextColor, fontSize: 15),
+          //       ),
+          //       const SizedBox(height: 10),
+          //       _buildSubscribeButton(),
+          //       const SizedBox(height: 16),
+          //       // Creator Attribution Row
+          //       Row(
+          //         crossAxisAlignment: CrossAxisAlignment.start,
+
+          //         children: [
+          //           _buildNetworkImage(
+          //             _con.channel?.logoUrl ?? "",
+          //             height: 45,
+          //             width: 45,
+          //             isCircle: true,
+          //             isDark: isDark,
+          //           ),
+          //           const SizedBox(width: 12),
+          //           Expanded(
+          //             child: Column(
+          //               crossAxisAlignment: CrossAxisAlignment.start,
+          //               mainAxisAlignment: MainAxisAlignment.start,
+          //               children: [
+          //                 Text(
+          //                   _con.channel?.name ?? "",
+          //                   style: TextStyle(
+          //                     fontWeight: FontWeight.bold,
+          //                     color: textColor,
+          //                   ),
+          //                 ),
+          //                 Text(
+          //                   _con.channel?.description ?? "",
+          //                   // maxLines: 1,
+          //                   // overflow: TextOverflow.ellipsis,
+          //                   style: TextStyle(color: subTextColor, fontSize: 13),
+          //                 ),
+          //               ],
+          //             ),
+          //           ),
+          //         ],
+          //       ),
+          //     ],
+          //   ),
+          // ),
         ],
       ),
     );
@@ -402,8 +587,12 @@ class _PlayListVideosWidgetState extends StateMVC<PlayListVideosWidget> {
                     color: const Color(0xFF00D285), // Tese Green
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Row(
+                  child: Row(
                     children: [
+                      // if (video.hasAccess == true)
+                      //   Icon(Icons.lock_open, color: Colors.white)
+                      // else
+                      //   Icon(Icons.lock, color: Color(0xFFFFD700)),
                       Text(
                         'Play',
                         style: TextStyle(
@@ -418,12 +607,12 @@ class _PlayListVideosWidgetState extends StateMVC<PlayListVideosWidget> {
                 ),
                 const SizedBox(height: 25),
 
-                video.hasAccess == true
-                    ? Icon(
-                        Icons.check_circle_outline_outlined,
-                        color: const Color(0xFF00D285),
-                      )
-                    : Icon(Icons.lock, color: Color(0xFFFFD700)),
+                // video.hasAccess == true
+                //     ? Icon(
+                //         Icons.check_circle_outline_outlined,
+                //         color: const Color(0xFF00D285),
+                //       )
+                //     : Icon(Icons.lock, color: Color(0xFFFFD700)),
               ],
             ),
             // else
@@ -532,6 +721,9 @@ class _PlayListVideosWidgetState extends StateMVC<PlayListVideosWidget> {
     ).then((v) {
       _con.listenForPlaylist(widget.playlist.id);
       _con.listenForPlaylistVideos(widget.playlist.id);
+      if (widget.hideMedia == true) {
+        Navigator.pop(context);
+      }
     });
   }
 
@@ -555,6 +747,9 @@ class _PlayListVideosWidgetState extends StateMVC<PlayListVideosWidget> {
     ).then((v) {
       _con.listenForPlaylist(widget.playlist.id);
       _con.listenForPlaylistVideos(widget.playlist.id);
+      if (widget.hideMedia == true) {
+        Navigator.pop(context);
+      }
     });
   }
 
@@ -582,8 +777,8 @@ class _PlayListVideosWidgetState extends StateMVC<PlayListVideosWidget> {
       Map map = {
         "wallet": result.method,
         "amount": video.price ?? 1,
-        "currency": "USD",
-        "paymentDescription": "Playlist  subscription payment",
+        "currency": video.currency,
+        "paymentDescription": "Playlist subscription payment",
         "payer": "${currentuser.value.user?.fullname}",
         "user_id": currentuser.value.user?.id,
         "playlist_id": video.id,
@@ -611,6 +806,9 @@ class _PlayListVideosWidgetState extends StateMVC<PlayListVideosWidget> {
           ).then((e) {
             _con.listenForPlaylist(widget.playlist.id);
             _con.listenForPlaylistVideos(widget.playlist.id);
+            if (widget.hideMedia == true) {
+              Navigator.pop(context);
+            }
           });
         } else if (result.method.toLowerCase() == 'zimswitch') {
           handleWebForm(res);
@@ -639,6 +837,8 @@ class _PlayListVideosWidgetState extends StateMVC<PlayListVideosWidget> {
   }) {
     return CachedNetworkImage(
       imageUrl: url,
+      httpHeaders: {'Cookie': cloudFrontCookieNotifier.value},
+
       imageBuilder: (context, imageProvider) => Container(
         height: height,
         width: width ?? double.infinity,

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart' as s;
 import 'package:loading_animation_widget/loading_animation_widget.dart';
@@ -29,7 +30,18 @@ class _SplashScreenState extends StateMVC<SplashScreen> {
     // SharedPreferences.setMockInitialValues({});
     SharedPreferences prefs = await SharedPreferences.getInstance();
     bool installed = prefs.getBool('installed') ?? false;
-    print("installed is ${installed}");
+    if (kDebugMode) {
+      print("installed is $installed");
+    }
+
+    final user = await _con.getUser();
+
+    if (user != null) {
+      await Future.delayed(Duration(seconds: 3));
+      // ignore: use_build_context_synchronously
+      Navigator.of(context).pushReplacementNamed('/Dashboard');
+    }
+
     // _con.progress.addListener(()  {
     //   double progress = 0;
     //   print("progress is $progress");
@@ -56,6 +68,7 @@ class _SplashScreenState extends StateMVC<SplashScreen> {
     // });
 
     await Future.delayed(Duration(seconds: 3));
+    // ignore: use_build_context_synchronously
     Navigator.of(context).pushReplacementNamed('/First');
   }
 

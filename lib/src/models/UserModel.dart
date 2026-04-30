@@ -126,6 +126,8 @@ class User {
 
   final String? fireBaseToken;
   final String? banner;
+  final String? slug;
+  final int? totalViews;
   User({
     this.name,
     this.lastname,
@@ -158,6 +160,8 @@ class User {
     this.description,
     this.fireBaseToken,
     this.banner,
+    this.slug,
+    this.totalViews,
   });
 
   // --- Factory Constructor for JSON Deserialization (FROM JSON) ---
@@ -221,9 +225,11 @@ class User {
         json['national_identification_type_id'],
       ),
       id: parseInt(json['id']),
+      slug: json['slug'] as String?,
+      totalViews: parseInt(json['total_views']),
     );
   }
-  get fullname => '$name $lastname';
+  get fullname => "${name ?? ''} ${lastname ?? ''}";
   get username =>
       '${name?.trim().toLowerCase()}${lastname?.trim().toLowerCase()}-$id'
           .replaceAll(' ', '');

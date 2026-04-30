@@ -1,16 +1,14 @@
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:mvc_pattern/mvc_pattern.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smacredit/client/profile/update_clint_profile.dart';
 import 'package:smacredit/src/auth/controller/LoginController.dart';
 import 'package:smacredit/src/auth/widgets/models/terms_widget2.dart';
-import 'package:smacredit/src/models/UserModel.dart';
 import 'package:smacredit/src/repositories/settings_repository.dart';
 import 'package:smacredit/src/repositories/user_repository.dart';
 import 'package:smacredit/src/theme/app_theme.dart';
@@ -548,7 +546,9 @@ class _ClientProfileScreenState extends StateMVC<ClientProfileScreen> {
               if (v == true) {
                 themeNotifier.value = ThemeMode.dark;
               } else {
-                themeNotifier.value = ThemeMode.light;
+                themeNotifier.value = ThemeMode.dark;
+
+                // themeNotifier.value = ThemeMode.light;
               }
               setState(() {});
               await ThemeService().saveThemeMode(v);
@@ -597,6 +597,17 @@ class _ClientProfileScreenState extends StateMVC<ClientProfileScreen> {
             shareTeseAfrica(context);
           },
         ),
+
+        _menuItem(
+          Icons.delete,
+          "Clear Cache",
+          voidCallback: () async {
+            await clearTeseAudioCache();
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Cache cleared successfully!")),
+            );
+          },
+        ),
         _menuItem(
           Icons.shield_outlined,
           "Privacy Policy",
@@ -623,11 +634,31 @@ class _ClientProfileScreenState extends StateMVC<ClientProfileScreen> {
           loggedIn ? "Logout" : "Sign In",
           showDivider: false,
           voidCallback: () async {
-            logout(loggedIn);
+            _con.logout(context);
           },
         ),
       ],
     );
+  }
+
+  Future<void> clearTeseAudioCache() async {
+    try {
+      // 1. Get the temporary directory where just_audio stores cached files
+      final tempDir = await getTemporaryDirectory();
+
+      // 2. just_audio_cache usually creates a subfolder or prefixes files
+      // You can delete the entire temp directory contents or target specific files
+      if (tempDir.existsSync()) {
+        tempDir.listSync().forEach((file) {
+          if (file is File && file.path.contains('just_audio_cache')) {
+            file.deleteSync();
+          }
+        });
+        debugPrint("Tese Audio Cache Cleared");
+      }
+    } catch (e) {
+      debugPrint("Error clearing cache: $e");
+    }
   }
 
   void shareTeseAfrica(BuildContext context) async {
@@ -654,20 +685,7 @@ class _ClientProfileScreenState extends StateMVC<ClientProfileScreen> {
     );
   }
 
-  Future<void> logout(bool loggedIn) async {
-    if (loggedIn) {
-      currentuser.value = UserModel();
-      final prefs = await SharedPreferences.getInstance();
-      prefs.remove('user');
-
-      Navigator.pushNamed(context, '/Login');
-    } else {
-      Navigator.pushNamed(context, '/Login');
-    }
-    await FirebaseAuth.instance.signOut(); // Clear Firebase session
-  }
-
-  Widget _menuItem(
+Widget _menuItem(
     IconData icon,
     String title, {
     Widget? trailing,

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:background_downloader/background_downloader.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -6,8 +7,12 @@ import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mvc_pattern/mvc_pattern.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:smacredit/client/downloads/uploadHelper.dart';
 import 'package:smacredit/src/content-creator/controller/creator_controller.dart';
+import 'package:smacredit/src/content-creator/controller/upload_manager.dart';
 import 'package:smacredit/src/content-creator/models/channel_model.dart';
+import 'package:smacredit/src/content-creator/models/tag_model.dart';
+import 'package:smacredit/src/content-creator/models/upload_response.dart';
 import 'package:smacredit/src/content-creator/widgets/success_dialog.dart';
 import 'package:smacredit/src/helpers/Message.dart';
 import 'package:smacredit/src/utils/xhelper.dart';
@@ -15,6 +20,7 @@ import 'package:smacredit/src/widgets/CustomButtons.dart';
 import 'package:smacredit/src/widgets/CustomOverlay.dart';
 import 'package:video_player/video_player.dart';
 import 'package:video_thumbnail/video_thumbnail.dart';
+import 'package:path/path.dart' as p;
 
 class UpdateVideoScreen extends StatefulWidget {
   final Video video;
@@ -33,266 +39,127 @@ class UpdateVideoScreen extends StatefulWidget {
 
 class _UpdateVideoScreenState extends StateMVC<UpdateVideoScreen> {
   final _formKey = GlobalKey<FormState>();
-
   late CreatorController _con;
 
   _UpdateVideoScreenState() : super(CreatorController()) {
     _con = controller as CreatorController;
   }
 
-  TextEditingController _titleController = TextEditingController();
-  TextEditingController _descController = TextEditingController();
-  TextEditingController _priceController = TextEditingController();
+  // Controllers initialized in initState to avoid null issues
+  late TextEditingController _titleController;
+  late TextEditingController _descController;
+  late TextEditingController _priceController;
 
   File? _videoFile;
   String _accessType = 'free';
+  late List<TagModel> _selectedTags;
   String _contentRating = 'G';
   String _selectedCurrency = 'USD';
-  File? _thumbNail;
-  int durationInSeconds = 0;
-  int sizeInBytes = 0;
-  final ImagePicker _picker = ImagePicker();
+  String fileName = "";
+  String taskId = "";
   File? _logoImage;
-
   bool visibility = false;
+
+  final ImagePicker _picker = ImagePicker();
+  final Color brandGreen = const Color(0xFF679E4F);
+
+  @override
+  void initState() {
+    super.initState();
+    final c = widget.video;
+    _con.listenForTags();
+    _selectedTags = List<TagModel>.from(widget.video.tags);
+    _titleController = TextEditingController(text: c.title ?? '');
+    _descController = TextEditingController(text: c.description ?? '');
+    _priceController = TextEditingController(text: c.price?.toString() ?? '');
+    _accessType = c.accessType ?? 'free';
+    _selectedCurrency = c.currency ?? 'USD';
+    visibility = widget.video.visibility?.toLowerCase() == 'visible';
+  }
+
+  // --- Logic Blocks ---
 
   Future<void> _pickFile() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: FileType.image,
     );
-    bool isLogo = true;
-    final Color brandGreen = const Color(0xFF00D285);
     if (result != null) {
       File file = File(result.files.single.path!);
       CroppedFile? croppedFile = await ImageCropper().cropImage(
         sourcePath: file.path,
-        aspectRatio: CropAspectRatio(ratioX: 1, ratioY: 1),
+        aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
         uiSettings: [
           AndroidUiSettings(
             toolbarTitle: 'Crop Image',
             toolbarColor: brandGreen,
             toolbarWidgetColor: Colors.white,
             activeControlsWidgetColor: brandGreen,
-            initAspectRatio: CropAspectRatioPreset.original,
-            lockAspectRatio: false,
-            aspectRatioPresets: [
-              CropAspectRatioPreset.original,
-              CropAspectRatioPreset.square,
-              CropAspectRatioPreset.ratio4x3,
-            ],
           ),
-          IOSUiSettings(
-            title: 'Crop Image',
-
-            aspectRatioPresets: [
-              CropAspectRatioPreset.original,
-              CropAspectRatioPreset.square,
-              CropAspectRatioPreset.ratio4x3,
-            ],
-          ),
+          IOSUiSettings(title: 'Crop Image'),
         ],
       );
 
       if (croppedFile != null) {
-        if (isLogo) {
-          setState(() {
-            _logoImage = File(croppedFile.path);
-
-            _con.updateVideoThumb(_logoImage!, widget.video.id);
-          });
-        }
+        setState(() {
+          _logoImage = File(croppedFile.path);
+          _con.updateVideoThumb(_logoImage!, widget.video.id);
+        });
       }
     }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    final c = widget.video;
-
-    // Pre-fill controllers with existing data or empty strings
-    _titleController = TextEditingController(text: c.title ?? '');
-    _descController = TextEditingController(text: c.description ?? '');
-    _priceController = TextEditingController(text: c.price?.toString() ?? '');
-
-    _accessType = c.accessType ?? 'free';
-    _selectedCurrency = c.currency ?? 'USD';
-    visibility = widget.video.visibility?.toLowerCase() == 'visible';
   }
 
   Future<void> _pickVideo() async {
     final XFile? video = await _picker.pickVideo(source: ImageSource.gallery);
     if (video != null) {
-      // String? path = await generateThumbnail(File(video.path));
+      File originalFile = File(video.path);
+      setState(() => _con.loading = true);
+      var appDir = await getApplicationDocumentsDirectory();
+      String newPath = p.join(appDir.path, p.basename(video.path));
+      File newvideo = await originalFile.copy(newPath);
+      await originalFile.delete();
       setState(() {
-        _videoFile = File(video.path);
+        _videoFile = File(newvideo.path);
+        _con.loading = false;
       });
     }
-
-    Future.delayed(Duration(seconds: 1)).then((v) {
-      setState(() {});
-    });
   }
 
-  Future<String?> generateThumbnail(File videoFile) async {
-    try {
-      // 1. Get a temporary directory to store the thumbnail
-      final tempDir = await getTemporaryDirectory();
-
-      // 2. Generate the thumbnail
-      final String? thumbnailPath = await VideoThumbnail.thumbnailFile(
-        video: videoFile.path,
-        thumbnailPath: tempDir.path,
-        imageFormat: ImageFormat.JPEG,
-        maxHeight: 200, // Scale the thumbnail height
-        quality: 75, // Compression quality
-        timeMs: 1000, // Extract frame at 1 second mark
-      );
-
-      return thumbnailPath;
-    } catch (e) {
-      print("Error generating thumbnail: $e");
-      return null;
-    }
-  }
-
-  void _showSuccess(BuildContext dialogContext) {
-    showDialog(
-      context: context,
-      barrierDismissible: false, // User must click the button
-      builder: (BuildContext context) {
-        return SuccessDialog(
-          message: "Your video details have been updated successfully",
-          onDismiss: () {
-            Navigator.of(dialogContext).pop();
-            Navigator.of(context).pop(); // Close Dialog
-            // Navigate to the Channel Detail screen or List
-          },
-        );
-      },
-    );
-  }
-
-  Future<String> getVideoResolution(File videoFile) async {
-    final VideoPlayerController controller = VideoPlayerController.file(
-      videoFile,
-    );
-
+  Future<bool> isTrailerValid(File videoFile) async {
+    final controller = VideoPlayerController.file(videoFile);
     try {
       await controller.initialize();
-
-      // Get natural dimensions
-      final double width = controller.value.size.width;
-      final double height = controller.value.size.height;
-
+      final duration = controller.value.duration;
       await controller.dispose();
-
-      // Standardize the output (e.g., 1080p, 720p, 4K)
-      if (height >= 2160) return "4K";
-      if (height >= 1080) return "1080p";
-      if (height >= 720) return "720p";
-      if (height >= 480) return "480p";
-
-      return "${height.toInt()}p";
+      return duration.inSeconds <= 20;
     } catch (e) {
-      print("Error getting resolution: $e");
-      return "Unknown";
+      return false;
     }
-  }
-
-  Future<int> getVideoDuration(File videoFile) async {
-    // 1. Create the controller
-    final VideoPlayerController controller = VideoPlayerController.file(
-      videoFile,
-    );
-
-    try {
-      // 2. Initialize it (this loads the metadata)
-      await controller.initialize();
-
-      // 3. Get duration in seconds (matching your Sequelize model)
-      final int durationInSeconds = controller.value.duration.inSeconds;
-      sizeInBytes = await videoFile.length();
-      // 4. Dispose to free up memory
-      await controller.dispose();
-
-      return durationInSeconds;
-    } catch (e) {
-      if (kDebugMode) {
-        print("Error getting video duration: $e");
-      }
-      return 0;
-    }
-  }
-
-  Future<int> getSize(File videoFile) async {
-    // 1. Create the controller
-    final VideoPlayerController controller = VideoPlayerController.file(
-      videoFile,
-    );
-
-    try {
-      // 2. Initialize it (this loads the metadata)
-      await controller.initialize();
-
-      // 3. Get duration in seconds (matching your Sequelize model)
-      sizeInBytes = await videoFile.length();
-      // 4. Dispose to free up memory
-      await controller.dispose();
-
-      return sizeInBytes;
-    } catch (e) {
-      if (kDebugMode) {
-        print("Error getting video duration: $e");
-      }
-      return 0;
-    }
-  }
-
-  Future<bool?> showDeleteConfirmation(BuildContext context) async {
-    return showDialog<bool>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Delete Video?'),
-          content: const Text('This action cannot be undone.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false), // Cancel
-              child: const Text('CANCEL'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context, true);
-              }, // Confirm
-              style: TextButton.styleFrom(foregroundColor: Colors.red),
-              child: const Text('DELETE'),
-            ),
-          ],
-        );
-      },
-    );
   }
 
   @override
   Widget build(BuildContext context) {
+    // VISIBILITY FIX: Define explicit colors based on Theme
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final Color textColor = isDark ? Colors.white : Colors.black87;
+    final Color subTextColor = isDark ? Colors.white70 : Colors.black54;
+    final Color inputBg = isDark ? Colors.white10 : const Color(0xFFF0F2F5);
+
     return CustomOverlay(
       loading: _con.loading,
       child: Scaffold(
         key: _con.scaffoldKey,
-        backgroundColor: Colors.white,
+        backgroundColor: isDark ? Colors.black : Colors.white,
         appBar: AppBar(
-          backgroundColor: Colors.white,
+          backgroundColor: isDark ? Colors.black : Colors.white,
           elevation: 0.5,
           leading: IconButton(
-            icon: const Icon(Icons.close, color: Colors.black),
+            icon: Icon(Icons.close, color: textColor),
             onPressed: () => Navigator.pop(context),
           ),
-          centerTitle: false,
-          title: const Text(
-            "Update Video",
+          title: Text(
+            "Update Content",
             style: TextStyle(
-              color: Colors.black,
+              color: textColor,
               fontSize: 17,
               fontWeight: FontWeight.bold,
             ),
@@ -300,331 +167,259 @@ class _UpdateVideoScreenState extends StateMVC<UpdateVideoScreen> {
           actions: [
             TextButton(
               onPressed: () async {
-                bool? confirmed = await showDeleteConfirmation(context);
-
-                // 2. If confirmed is true, call your API
+                bool? confirmed = await _showDeleteConfirmation(context);
                 if (confirmed == true) {
-                  Map map = {"id": widget.video.id};
-
-                  Video? channel = await _con.deleteVideo(map);
-                  if (channel != null) {
-                    _showSuccess(context);
-                  } else {
-                    CustomMessageHandler().showErrorSnakeBar(
-                      context,
-                      "Something went wrong.Try again",
-                    );
-                  }
+                  Video? channel = await _con.deleteVideo({
+                    "id": widget.video.id,
+                  });
+                  if (channel != null) _showSuccess(context);
                 }
               },
-              child: Text(
-                "Delete Video",
+              child: const Text(
+                "Delete Content",
                 style: TextStyle(
-                  color: _videoFile == null ? Colors.grey : Colors.blueAccent,
+                  color: Colors.redAccent,
                   fontWeight: FontWeight.bold,
                 ),
               ),
             ),
           ],
         ),
-        body: Padding(
+        body: SingleChildScrollView(
           padding: const EdgeInsets.all(8.0),
-          child: SingleChildScrollView(
-            child: Form(
-              key: _formKey,
-              child: Column(
-                children: [
-                  // 1. VIDEO SELECTION BOX (FB POST STYLE)
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // 2. TITLE (FB TITLE STYLE)
-                        TextFormField(
-                          controller: _titleController,
-                          validator: (v) {
-                            if (v == null || v.isEmpty) {
-                              return 'required';
-                            }
-
-                            return null;
-                          },
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          decoration: const InputDecoration(
-                            hintText: "Video Title",
-                            border: InputBorder.none,
-                          ),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // TITLE
+                      TextFormField(
+                        controller: _titleController,
+                        style: TextStyle(
+                          color: textColor,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w500,
                         ),
-                        const Divider(),
-
-                        // 3. DESCRIPTION
-                        TextFormField(
-                          controller: _descController,
-                          validator: (v) {
-                            if (v == null || v.isEmpty) {
-                              return 'required';
-                            }
-
-                            return null;
-                          },
-                          maxLines: 3,
-                          decoration: const InputDecoration(
-                            hintText: "What's this video about?",
-                            border: InputBorder.none,
-                          ),
+                        decoration: InputDecoration(
+                          hintText: "Video Title",
+                          hintStyle: TextStyle(color: subTextColor),
+                          border: InputBorder.none,
                         ),
-                        const Divider(),
-
-                        // 4. CONTENT RATING DROPDOWN
-                        _buildListTileDropdown(
-                          icon: Icons.subtitles_outlined,
-                          label: "Content Rating",
-                          value: _contentRating,
-                          items: ['G', 'PG', 'PG-13', 'R'],
-                          onChanged: (val) =>
-                              setState(() => _contentRating = val!),
+                      ),
+                      const Divider(),
+                      // DESCRIPTION
+                      TextFormField(
+                        controller: _descController,
+                        maxLines: 3,
+                        style: TextStyle(color: textColor),
+                        decoration: InputDecoration(
+                          hintText: "What's this video about?",
+                          hintStyle: TextStyle(color: subTextColor),
+                          border: InputBorder.none,
                         ),
-
-                        // 5. ACCESS TYPE (FREE/PAID)
-                        _buildListTileDropdown(
-                          icon: Icons.lock_open,
-                          label: "Access Type",
-                          value: _accessType,
-                          items: ['free', 'paid'],
-                          onChanged: (val) =>
-                              setState(() => _accessType = val!),
-                        ),
-
-                        // 6. CONDITIONAL PRICING
-                        if (_accessType == 'paid') ...[
-                          const SizedBox(height: 10),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildGreyInput(
-                                  "Price",
-                                  _priceController,
-                                  keyboardType: TextInputType.number,
-                                ),
+                      ),
+                      const Divider(),
+                      // DROP DOWNS
+                      _buildListTileDropdown(
+                        icon: Icons.subtitles_outlined,
+                        label: "Content Rating",
+                        value: _contentRating,
+                        items: ['G', 'PG', 'PG-13', 'R'],
+                        textColor: textColor,
+                        onChanged: (val) =>
+                            setState(() => _contentRating = val!),
+                      ),
+                      _buildListTileDropdown(
+                        icon: Icons.lock_open,
+                        label: "Access Type",
+                        value: _accessType,
+                        items: ['free', 'paid'],
+                        textColor: textColor,
+                        onChanged: (val) => setState(() => _accessType = val!),
+                      ),
+                      if (_accessType == 'paid') ...[
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildGreyInput(
+                                "Price",
+                                _priceController,
+                                inputBg,
+                                textColor,
                               ),
-                              const SizedBox(width: 12),
-                              Expanded(child: _buildCurrencyDropdown()),
-                            ],
-                          ),
-                        ],
-                        const SizedBox(height: 24),
-                        CustomButtons.filledButton(
-                          text: 'Update',
-                          callback: () async {
-                            if (_formKey.currentState!.validate()) {
-                              Map map = {
-                                "title": _titleController.text,
-                                "id": widget.video.id,
-                                "description": _descController.text,
-                                "content_rating": _contentRating,
-                                "access_type": _accessType,
-                                "price": _priceController.text.isEmpty
-                                    ? 0
-                                    : _priceController.text,
-                                "currency": _selectedCurrency,
-                              };
-
-                              Video? channel = await _con.updateVideo(map);
-
-                              if (channel != null) {
-                                // ignore: use_build_context_synchronously
-                                _showSuccess(context);
-                              } else {
-                                CustomMessageHandler().showErrorSnakeBar(
-                                  // ignore: use_build_context_synchronously
-                                  context,
-                                  "Something went wrong.Try again",
-                                );
-                              }
-                            } else {
-                              CustomMessageHandler().showErrorSnakeBar(
-                                context,
-                                "Please fill in all fields",
-                              );
-                            }
-                          },
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _buildCurrencyDropdown(inputBg, textColor),
+                            ),
+                          ],
                         ),
                       ],
+                      const SizedBox(height: 24),
+                      _buildTagsSection(isDark),
+                      const SizedBox(height: 24),
+                      CustomButtons.filledButton(
+                        text: 'Update Info',
+                        callback: _handleUpdate,
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(color: Colors.blueGrey),
+                // VISIBILITY
+                SwitchListTile(
+                  title: Text(
+                    widget.video.isAudio == true
+                        ? "Audio Visibility"
+                        : 'Video Visibility',
+                    style: TextStyle(
+                      color: textColor,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                  Divider(color: Colors.blueGrey),
+                  subtitle: Text(
+                    visibility
+                        ? "Visible to users"
+                        : widget.video.thumbnailUrl == null
+                        ? "Update thumbnail first"
+                        : "Content is not visible to users",
+                    style: TextStyle(color: subTextColor),
+                  ),
+                  value: visibility,
+                  activeColor: brandGreen,
+                  onChanged: (bool value) async {
+                    if (widget.video.thumbnailUrl == null) {
+                      CustomMessageHandler().showErrorSnakeBar(
+                        context,
+                        "Update thumbanil first to update content",
+                      );
+                      return;
+                    }
+                    if (widget.video.thumbnailUrl == null) {
+                      CustomMessageHandler().showErrorSnakeBar(
+                        context,
+                        "Update thumbanil first to update content",
+                      );
+                      return;
+                    }
+                    Video? channel = await _con.updateVideoVisibility({
+                      "visibility": value,
+                      "id": widget.video.id,
+                    });
+                    if (channel != null) setState(() => visibility = value);
+                  },
+                ),
+                const Divider(color: Colors.blueGrey),
+                // THUMBNAIL
+                ListTile(
+                  leading: Container(
+                    height: 50,
+                    width: 50,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      image: DecorationImage(
+                        image: _logoImage != null
+                            ? FileImage(_logoImage!)
+                            : NetworkImage(widget.video.thumbnailUrl ?? "")
+                                  as ImageProvider,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                  onTap: _pickFile,
+                  title: Text(
+                    "Update Content thumbnail",
+                    style: TextStyle(
+                      color: textColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  subtitle: Text(
+                    _logoImage != null ? "Thumbnail picked" : "Click to update",
+                    style: TextStyle(color: subTextColor),
+                  ),
+                ),
+                const Divider(color: Colors.blueGrey),
 
-                  // ListTile(
-                  //   title: Text(
-                  //     "Video Visibility ",
-                  //     style: TextStyle(
-                  //       fontWeight: FontWeight.bold,
-                  //       // fontSize: 12.0,
-                  //     ),
-                  //   ),
-
-                  //   subtitle: Text(
-                  //     widget.video.visibility?.toLowerCase() == 'visible'
-                  //         ? "Visible to users"
-                  //         : "Video is not visible to users",
-                  //   ),
-                  // ),
-                  SwitchListTile(
-                    title: const Text('Video Visibility'),
+                if (widget.video.isAudio == false) ...[
+                  TrailerDisclaimerCard(onPickTrailer: _pickVideo),
+                  ListTile(
+                    title: Text(
+                      "Video trailer",
+                      style: TextStyle(
+                        color: textColor,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     subtitle: Text(
-                      widget.video.visibility?.toLowerCase() == 'visible'
-                          ? "Visible to users"
-                          : "Video is not visible to users",
-                    ), // Icon on the left
-                    value: visibility, // A boolean variable
-                    onChanged: (bool value) async {
-                      Map map = {
-                        "visibility": value ? "VISIBLE" : "NOT_VISIBLE",
-                        "id": widget.video.id,
-                      };
-                      Video? channel = await _con.updateVideoVisibility(map);
-                      if (channel != null) {
-                        // ignore: use_build_context_synchronously
-                        // _showSuccess(context);
-                        setState(() {
-                          visibility = value;
-                        });
-                      } else {
-                        CustomMessageHandler().showErrorSnakeBar(
-                          // ignore: use_build_context_synchronously
+                      widget.video.trailer != null
+                          ? "Trailer set"
+                          : "No trailer set: Tap to select",
+                      style: TextStyle(color: subTextColor),
+                    ),
+                    trailing: widget.video.trailer != null
+                        ? Icon(Icons.play_circle_fill, color: brandGreen)
+                        : null,
+                    onTap: () {
+                      if (widget.video.trailer != null) {
+                        Navigator.pushNamed(
                           context,
-                          "Something went wrong.Try again",
+                          '/VideoTrailer',
+                          arguments: {
+                            'video': widget.video,
+                            'playlist': widget.playlist,
+                            'channel': widget.channel,
+                          },
                         );
                       }
                     },
                   ),
-
-                  Divider(color: Colors.blueGrey),
-
-                  ListTile(
-                    leading: Container(
-                      height: 50,
-                      width: 50,
-                      decoration: BoxDecoration(
-                        image: DecorationImage(
-                          image: _con.profileImage != null && _logoImage != null
-                              ? FileImage(_logoImage!)
-                              : NetworkImage(widget.video.thumbnailUrl ?? ""),
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    ),
-                    onTap: () {
-                      _pickFile();
-                    },
-                    title: Text(
-                      "Update Video thumbnail",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        // fontSize: 12.0,
-                      ),
-                    ),
-
-                    subtitle: Text(
-                      _logoImage != null
-                          ? "Thumbanail picked"
-                          : "Click to update",
-                    ),
-                  ),
-
-                  Divider(color: Colors.blueGrey),
-
-                  ListTile(
-                    onTap: () {
-                      _pickVideo();
-                    },
-                    title: Text(
-                      "Video trailer",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        // fontSize: 12.0,
-                      ),
-                    ),
-
-                    trailing: widget.video.trailer != null
-                        ? InkWell(
-                            onTap: () {
-                              Navigator.pushNamed(
-                                context,
-                                '/VideoDetails',
-                                arguments: {
-                                  'video': widget.video,
-                                  'playlist': widget.playlist,
-                                  'channel': widget.channel,
-                                },
-                              );
-                            },
-
-                            child: Icon(Icons.play_arrow_outlined),
-                          )
-                        : null,
-
-                    subtitle: Text(
-                      widget.video.trailer != null
-                          ? "Trailer set"
-                          : "trailer not set:Tap to select trailer video",
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  _videoFile != null
-                      ? CustomButtons.filledButton(
-                          text: 'Upload',
-                          callback: () async {
-                            Video? channel = await _con.uploadVideoTrailer(
-                              _videoFile!,
-                              widget.video.id,
-                            );
-
-                            if (channel != null) {
-                              _showSuccess(context);
-                            } else {
-                              CustomMessageHandler().showErrorSnakeBar(
-                                context,
-                                "Something went wrong.Try again",
-                              );
-                            }
-                          },
-                        )
-                      : SizedBox.shrink(),
-                  Divider(color: Colors.blueGrey),
-
-                  ListTile(
-                    title: Text(
-                      "Video details",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        // fontSize: 12.0,
-                      ),
-                    ),
-
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Duration:${UtilsHelper.formatLongDuration(widget.video.durationSeconds ?? 0)}",
-                        ),
-                        SizedBox(height: 8),
-                        Text("Resolution:${widget.video.resolutionMax ?? '-'}"),
-                        SizedBox(height: 8),
-
-                        Text(
-                          "Date created:${widget.video.createdAt?.toIso8601String() ?? '-'}",
-                        ),
-                        SizedBox(height: 8),
-                      ],
-                    ),
-                  ),
                 ],
-              ),
+
+                // TRAILER
+                if (_videoFile != null)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: CustomButtons.filledButton(
+                      text: 'Upload Selected Trailer',
+                      callback: _handleTrailerUpload,
+                    ),
+                  ),
+                const Divider(color: Colors.blueGrey),
+                // DETAILS
+                ListTile(
+                  title: Text(
+                    "Content details",
+                    style: TextStyle(
+                      color: textColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 8),
+                      Text(
+                        "Duration: ${UtilsHelper.formatLongDuration(widget.video.durationSeconds ?? 0)}",
+                        style: TextStyle(color: subTextColor),
+                      ),
+                      Text(
+                        "Resolution: ${widget.video.resolutionMax ?? '-'}",
+                        style: TextStyle(color: subTextColor),
+                      ),
+                      Text(
+                        "Created: ${widget.video.createdAt?.toLocal().toString().split(' ')[0] ?? '-'}",
+                        style: TextStyle(color: subTextColor),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -632,20 +427,78 @@ class _UpdateVideoScreenState extends StateMVC<UpdateVideoScreen> {
     );
   }
 
-  // --- UI BUILDERS ---
+  // --- UI Helpers with Visibility Fixes ---
+
+  Widget _buildTagsSection(bool isDark) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "TAGS",
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            color: Colors.grey,
+            letterSpacing: 1.2,
+          ),
+        ),
+        const SizedBox(height: 10),
+        if (_con.tags.isEmpty)
+          Text(
+            "No tags available",
+            style: TextStyle(color: Colors.grey, fontSize: 13),
+          )
+        else
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _con.tags.map((tag) {
+              final isSelected = _selectedTags.any((t) => t.id == tag.id);
+              return FilterChip(
+                label: Text(tag.name),
+                selected: isSelected,
+                onSelected: (selected) {
+                  setState(() {
+                    if (selected) {
+                      _selectedTags.add(tag);
+                    } else {
+                      _selectedTags.removeWhere((t) => t.id == tag.id);
+                    }
+                  });
+                },
+                selectedColor: brandGreen.withOpacity(0.2),
+                checkmarkColor: brandGreen,
+                labelStyle: TextStyle(
+                  color: isSelected ? brandGreen : (isDark ? Colors.white70 : Colors.black87),
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                ),
+                backgroundColor: isDark ? Colors.white10 : Colors.white,
+                side: BorderSide(
+                  color: isSelected ? brandGreen : Colors.grey.shade300,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              );
+            }).toList(),
+          ),
+      ],
+    );
+  }
 
   Widget _buildListTileDropdown({
     required IconData icon,
     required String label,
     required String value,
     required List<String> items,
+    required Color textColor,
     required ValueChanged<String?> onChanged,
   }) {
     return ListTile(
       contentPadding: EdgeInsets.zero,
       leading: CircleAvatar(
-        backgroundColor: const Color(0xFFF0F2F5),
-        child: Icon(icon, color: Colors.black87, size: 20),
+        backgroundColor: brandGreen.withOpacity(0.1),
+        child: Icon(icon, color: brandGreen, size: 20),
       ),
       title: Text(
         label,
@@ -653,6 +506,10 @@ class _UpdateVideoScreenState extends StateMVC<UpdateVideoScreen> {
       ),
       trailing: DropdownButton<String>(
         value: value,
+        dropdownColor: Theme.of(
+          context,
+        ).cardColor, // Fix for dropdown visibility
+        style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
         underline: const SizedBox(),
         items: items
             .map(
@@ -666,58 +523,246 @@ class _UpdateVideoScreenState extends StateMVC<UpdateVideoScreen> {
 
   Widget _buildGreyInput(
     String label,
-    TextEditingController controller, {
-    TextInputType? keyboardType,
-  }) {
+    TextEditingController controller,
+    Color bg,
+    Color textColor,
+  ) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF0F2F5),
+        color: bg,
         borderRadius: BorderRadius.circular(8),
       ),
       child: TextFormField(
         controller: controller,
-        validator: (v) {
-          if (v == null || v.isEmpty) {
-            return 'required';
-          }
-
-          if (num.tryParse(v) == null) {
-            return 'Enter a valid amount';
-          }
-
-          if (num.tryParse(v)! <= 0) {
-            return 'Enter a valid amount';
-          }
-          return null;
-        },
-        keyboardType: keyboardType,
+        style: TextStyle(color: textColor),
+        keyboardType: TextInputType.number,
         decoration: InputDecoration(
           labelText: label,
+          labelStyle: const TextStyle(fontSize: 12, color: Colors.grey),
           border: InputBorder.none,
-          labelStyle: const TextStyle(fontSize: 12),
         ),
       ),
     );
   }
 
-  Widget _buildCurrencyDropdown() {
+  Widget _buildCurrencyDropdown(Color bg, Color textColor) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF0F2F5),
+        color: bg,
         borderRadius: BorderRadius.circular(8),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: _selectedCurrency,
+          dropdownColor: Theme.of(context).cardColor,
           isExpanded: true,
+          style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
           items: const [
             DropdownMenuItem(value: "USD", child: Text("USD")),
             DropdownMenuItem(value: "EUR", child: Text("EUR")),
             DropdownMenuItem(value: "GBP", child: Text("GBP")),
           ],
           onChanged: (val) => setState(() => _selectedCurrency = val!),
+        ),
+      ),
+    );
+  }
+
+  // --- Logic Handlers ---
+
+  void _handleUpdate() async {
+    if (_formKey.currentState!.validate()) {
+      Video? channel = await _con.updateVideo({
+        "title": _titleController.text,
+        "id": widget.video.id,
+        "description": _descController.text,
+        "content_rating": _contentRating,
+        "access_type": _accessType,
+        "price": _priceController.text.isEmpty ? 0 : _priceController.text,
+        "currency": _selectedCurrency,
+        "tag_ids": _selectedTags.map((t) => t.id).toList(),
+      });
+      if (channel != null) _showSuccess(context);
+    }
+  }
+
+  void _handleTrailerUpload() async {
+    bool isValid = await isTrailerValid(_videoFile!);
+    if (!isValid) {
+      CustomMessageHandler().showErrorSnakeBar(
+        context,
+        "Trailer too long (Max 20s)",
+      );
+      return;
+    }
+    S3UploadResponse? response = await _con.generateTrailerUploadLink({
+      "id": widget.video.id,
+      "extension": _videoFile?.path.split(".").last,
+    });
+    if (response != null) {
+      fileName = response.fileName;
+      taskId = "${widget.video.id}${DateTime.now().millisecond}";
+      await _con.uploadTrailerVideoToS3(response, _videoFile!, taskId);
+      TeseUploadManager.instance.uploads.addListener(listener);
+      _showLoadingModal(context, taskId);
+    }
+  }
+
+  void listener() async {
+    final record = TeseUploadManager.instance.uploads.value[taskId];
+    if (record != null && record.status == TaskStatus.complete) {
+      TeseUploadManager.instance.uploads.removeListener(listener);
+      Video? video = await _con.saveVideoTrailer({
+        'id': widget.video.id,
+        "fileName": fileName,
+      });
+      if (video != null) {
+        setState(() => _videoFile = null);
+        if (context.mounted) {
+          Navigator.pop(context);
+          Navigator.pop(context);
+        }
+      }
+    }
+  }
+
+  void _showSuccess(BuildContext dialogContext) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) => SuccessDialog(
+        message: "Video details updated successfully",
+        onDismiss: () {
+          Navigator.pop(context);
+          Navigator.pop(dialogContext);
+        },
+      ),
+    );
+  }
+
+  Future<bool?> _showDeleteConfirmation(BuildContext context) async {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Video?'),
+        content: const Text('This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('CANCEL'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('DELETE', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showLoadingModal(BuildContext context, String taskId) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => PopScope(
+        canPop: false,
+        child: AlertDialog(
+          title: const Text("Finalizing Trailer"),
+          content: ValueListenableBuilder<Map<String, TaskRecord>>(
+            valueListenable: TeseUploadManager.instance.uploads,
+            builder: (context, allUploads, child) {
+              final progress = allUploads[taskId]?.progress ?? 0.0;
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text("Uploading and securing your trailer..."),
+                  const SizedBox(height: 20),
+                  LinearProgressIndicator(
+                    value: progress.clamp(0.0, 1.0),
+                    color: brandGreen,
+                  ),
+                  const SizedBox(height: 10),
+                  Text("${(progress * 100).toInt()}%"),
+                ],
+              );
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancel", style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// RESTORED TRAILER CARD
+class TrailerDisclaimerCard extends StatelessWidget {
+  final VoidCallback onPickTrailer;
+  const TrailerDisclaimerCard({super.key, required this.onPickTrailer});
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFF0F9EF),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: const Color(0xFF679E4F).withOpacity(0.2)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(
+                  Icons.video_library_rounded,
+                  color: Color(0xFF679E4F),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  "Trailer Requirements",
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : const Color(0xFF1B3D13),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              "• Max duration: 20 seconds\n• Formats: MP4, MOV\n• Purpose: Preview for paid content",
+              style: TextStyle(
+                fontSize: 13,
+                height: 1.5,
+                color: isDark ? Colors.white70 : Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: onPickTrailer,
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text("SELECT TRAILER"),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF679E4F),
+                  side: const BorderSide(color: Color(0xFF679E4F)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

@@ -3,10 +3,12 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:smacredit/client/downloads/download_record.dart';
 import 'package:smacredit/client/downloads/downloaddb.dart';
 import 'package:smacredit/client/downloads/file_helper.dart';
 import 'package:smacredit/client/downloads/service.dart';
 import 'package:smacredit/client/downloads/storage_helper.dart';
+import 'package:smacredit/client/players/offline_audio_player.dart';
 import 'package:smacredit/client/players/offline_player.dart';
 import 'package:storage_space/storage_space.dart';
 
@@ -60,7 +62,7 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
 
             // 2. DOWNLOADED VIDEOS LIST
             Expanded(
-              child: FutureBuilder<List<Map<String, dynamic>>>(
+              child: FutureBuilder<List<DownloadRecord>>(
                 future: DownloadDB.getCompletedDownloads(),
                 builder: (context, snapshot) {
                   if (!snapshot.hasData || snapshot.data!.isEmpty) {
@@ -75,8 +77,13 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
                     padding: const EdgeInsets.all(16),
                     itemCount: snapshot.data!.length,
                     itemBuilder: (context, index) {
-                      final item = snapshot.data![index];
-                      return _buildDownloadItem(item, cardColor, isDark);
+                      return _buildDownloadItem(
+                        snapshot.data![index],
+                        cardColor,
+                        isDark,
+                        allRecords: snapshot.data!,
+                        index: index,
+                      );
                     },
                   );
                 },
@@ -206,26 +213,44 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
   }
 
   Widget _buildDownloadItem(
-    Map<String, dynamic> item,
+    DownloadRecord item,
     Color cardColor,
-    bool isDark,
-  ) {
+    bool isDark, {
+    required List<DownloadRecord> allRecords,
+    required int index,
+  }) {
     return FutureBuilder<int>(
-      future: File("${directory?.path}/${item['fileName']}").length(),
+      future: File("${directory?.path}/${item.fileName}").length(),
       builder: (context, sizeSnapshot) {
-        final mb = (sizeSnapshot.data ?? 0) / (1024 * 1024);
         return InkWell(
           onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => OfflinePlayerScreen(
-                  videoName: item['videoName'],
-                  videoId: item['videoId'],
-                  fileName: item['fileName'],
+            if (item.isMusic) {
+              final musicRecords =
+                  allRecords.where((r) => r.isMusic).toList();
+              final musicIndex =
+                  musicRecords.indexWhere((r) => r.videoId == item.videoId);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  settings: const RouteSettings(name: '/OfflineAudioPlayer'),
+                  builder: (context) => OfflineAudioPlayerScreen(
+                    records: musicRecords,
+                    initialIndex: musicIndex < 0 ? 0 : musicIndex,
+                  ),
                 ),
-              ),
-            );
+              );
+            } else {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => OfflinePlayerScreen(
+                    videoName: item.videoName,
+                    videoId: item.videoId,
+                    fileName: item.fileName,
+                  ),
+                ),
+              );
+            }
           },
           child: Container(
             margin: const EdgeInsets.only(bottom: 12),
@@ -248,7 +273,12 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
                         color: Colors.grey[300],
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Icon(Icons.image, color: Colors.grey),
+                      child: Icon(
+                        item.isMusic
+                            ? Icons.music_note
+                            : Icons.videocam_outlined,
+                        color: Colors.grey,
+                      ),
                     ),
                     const CircleAvatar(
                       radius: 15,
@@ -264,7 +294,7 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        item['videoName'],
+                        item.videoName,
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
@@ -272,14 +302,47 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      // const Text(
-                      //   "Nature Films Africa",
-                      //   style: TextStyle(color: Colors.grey, fontSize: 13),
-                      // ),
+                      if (item.artist != null)
+                        Text(
+                          item.artist!,
+                          style: const TextStyle(color: Colors.grey, fontSize: 13),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      if (item.album != null)
+                        Text(
+                          item.album!,
+                          style: const TextStyle(color: Colors.grey, fontSize: 12),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: item.isMusic
+                              ? const Color(0xFF00D285).withOpacity(0.15)
+                              : Colors.blue.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          item.isMusic ? 'Music' : 'Video',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: item.isMusic
+                                ? const Color(0xFF00D285)
+                                : Colors.blue,
+                          ),
+                        ),
+                      ),
                       const SizedBox(height: 4),
                       FutureBuilder<int>(
                         future: File(
-                          File("${directory?.path}/${item['fileName']}").path,
+                          File("${directory?.path}/${item.fileName}").path,
                         ).length(), // filePath from our previous step
                         builder: (context, snapshot) {
                           if (!snapshot.hasData) {
@@ -333,7 +396,7 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
     );
   }
 
-  void _confirmDelete(Map<String, dynamic> item) {
+  void _confirmDelete(DownloadRecord item) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -349,9 +412,9 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
           TextButton(
             onPressed: () async {
               await DownloadService.deleteDownload(
-                item['videoId'],
-                item['taskId'],
-                item['videoName'],
+                item.videoId,
+                item.taskId,
+                item.videoName,
               );
               setState(() {}); // Refresh list
               Navigator.pop(context);

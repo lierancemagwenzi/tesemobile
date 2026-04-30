@@ -50,6 +50,8 @@ class Category {
   final int? id;
   final String? name;
   final String? image;
+  final String? color;
+  final String? icon;
   final String? description;
   final int? videoCount;
   final List<Video>? videos;
@@ -57,6 +59,8 @@ class Category {
     this.id,
     this.name,
     this.image,
+    this.icon,
+    this.color,
     this.description,
     this.videoCount,
     this.videos,
@@ -67,6 +71,8 @@ class Category {
       id: json['id'],
       name: json['name'],
       image: json['image'],
+      icon: json['icon'],
+      color: json['color'],
       videos: json['videos'] != null
           ? (json['videos'] as List).map((i) => Video.fromJson(i)).toList()
           : null,

@@ -5,6 +5,9 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:mvc_pattern/mvc_pattern.dart';
+import 'package:smacredit/src/auth/controller/shared_preferences_helper.dart';
+import 'package:smacredit/src/auth/repository/login_repository.dart';
+import 'package:smacredit/src/models/UserModel.dart';
 import 'package:smacredit/src/repositories/settings_repository.dart' as settingRepo;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -24,6 +27,21 @@ bool loading=false;
 
 
 
+
+
+Future<UserModel?> getUser() async {
+
+String? token= await TokenService.getToken();
+if(token!=null){
+final user= await renewToken(token);
+return user;
+}
+
+else{
+  return null;
+}
+  
+}
 
 
 

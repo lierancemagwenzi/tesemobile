@@ -1,0 +1,1 @@
+enum SignUpType { creator, supporter }

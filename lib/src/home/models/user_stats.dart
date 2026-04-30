@@ -1,4 +1,5 @@
 // --- PriceModel (Required Dependency) ---
+import 'package:smacredit/src/content-creator/models/channel_model.dart';
 import 'package:smacredit/src/home/models/earnings_stats_model.dart';
 import 'package:smacredit/src/payments/models/transaction_model.dart';
 
@@ -15,10 +16,20 @@ class PriceModel {
     );
   }
 }
+
 // ------------------------------------------
 
 class UserStatsModel {
   final double totalEarnings;
+
+  final int? videos;
+  final int? views;
+  final int? channels;
+  final int? playlists;
+
+  List<Channel>? topChannels;
+  List<Playlist>? topPlaylists;
+  List<Video>? topVideos;
   final double weeklyEarnings;
   final double monthlyEarnings;
   final double todayEarnings;
@@ -43,6 +54,13 @@ class UserStatsModel {
     this.amountStats,
     this.uniqueCurrencies,
     this.transactions,
+    this.videos,
+    this.views,
+    this.channels,
+    this.playlists,
+    this.topChannels,
+    this.topPlaylists,
+    this.topVideos,
   });
 
   // Factory constructor to create a UserStatsModel from a JSON Map
@@ -53,9 +71,9 @@ class UserStatsModel {
         .toList();
 
     // Deserialize the 'earnings' list (assuming it holds numbers/doubles)
-    final earningsList = (json['earnings'] as List<dynamic>)
-        .map((item) => (item as num).toDouble())
-        .toList();
+    // final earningsList = (json['earnings'] as List<dynamic>)
+    //     .map((item) => (item as num).toDouble())
+    //     .toList();
 
     final List<AmountStatsModel>? parsedAmountStats =
         (json['amountStats'] as List<dynamic>?)
@@ -63,6 +81,19 @@ class UserStatsModel {
               (item) => AmountStatsModel.fromJson(item as Map<String, dynamic>),
             )
             .toList();
+
+    final List<Channel>? topChannels = (json['top_channels'] as List<dynamic>?)
+        ?.map((item) => Channel.fromJson(item as Map<String, dynamic>))
+        .toList();
+
+    final List<Playlist>? topPlaylists =
+        (json['top_playlists'] as List<dynamic>?)
+            ?.map((item) => Playlist.fromJson(item as Map<String, dynamic>))
+            .toList();
+
+    final List<Video>? topVideos = (json['top_videos'] as List<dynamic>?)
+        ?.map((item) => Video.fromJson(item as Map<String, dynamic>))
+        .toList();
 
     final List<TransactionModel>? transactions =
         (json['transactions'] as List<dynamic>?)
@@ -88,10 +119,17 @@ class UserStatsModel {
       todayEarnings: (json['today_earnings'] as num).toDouble(),
       amountStats: parsedAmountStats,
       uniqueCurrencies: parsedUniqueCurrencies,
+      topPlaylists: topPlaylists,
+      topChannels: topChannels,
+      topVideos: topVideos,
       balances: balancesList,
       notificationCount: json['notification_count'] as int,
-      earnings: earningsList,
+      earnings: [],
       transactions: transactions,
+      videos: (json['video_count'] as num).toInt(),
+      channels: (json['total_channels'] as num).toInt(),
+      playlists: (json['total_playlists'] as num).toInt(),
+      views: (json['total_views'] as num).toInt(),
     );
   }
 }

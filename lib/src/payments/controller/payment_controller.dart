@@ -6,6 +6,7 @@ import 'package:smacredit/src/auth/repository/login_repository.dart';
 import 'package:smacredit/src/helpers/Message.dart';
 import 'package:smacredit/src/payments/models/bank_account.dart';
 import 'package:smacredit/src/payments/models/currencyModel.dart';
+import 'package:smacredit/src/payments/models/default_link.dart';
 import 'package:smacredit/src/payments/models/document_type.dart';
 import 'package:smacredit/src/payments/models/payment_link_model.dart';
 import 'package:smacredit/src/payments/models/payout_model.dart';
@@ -25,7 +26,7 @@ class PaymentController extends ControllerMVC {
   List<DocumentTypeDetail> documentTypes = [];
 
   ShortLinkModel? shortLinkModel;
-
+  DefaultLinkModel? defaultLinkModel;
   List<BankAccount> banks = [];
   PaymentController() {
     scaffoldKey = GlobalKey<ScaffoldState>();
@@ -86,6 +87,26 @@ class PaymentController extends ControllerMVC {
       bool? response = await upload_document(map, files);
       setState(() {
         loading = false;
+      });
+      return response;
+    } catch (e) {
+      setState(() {
+        loading = false;
+      });
+      return null;
+    }
+  }
+
+  Future<DefaultLinkModel?> makeDefaultLink(Map map) async {
+    setState(() {
+      loading = true;
+    });
+
+    try {
+      DefaultLinkModel? response = await make_default_link(map);
+      setState(() {
+        loading = false;
+        defaultLinkModel = response;
       });
       return response;
     } catch (e) {
@@ -325,7 +346,24 @@ class PaymentController extends ControllerMVC {
       },
     );
   }
+  void getDefaultLink() {
+    setState(() {
+      loading = true;
+    });
+    get_default_link({}).then((value) async {
+      if (value != null) {
+        setState(() {
+          defaultLinkModel = value;
+          loading = false;
+        });
+      } else {
+        setState(() {
+          loading = false;
+        });
 
+      }
+    });
+  }
   Future<void> listenForBanks() async {
     setState(() {
       loading = true;

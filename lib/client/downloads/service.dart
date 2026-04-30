@@ -85,28 +85,32 @@ static Future<void> retryDownload(
     int videoId,
     String url,
     String name,
-    String fileName
-  ) async {
-    // 1. Find the old taskId from our mapping
+    String fileName, {
+    String type = 'video',
+    String? artist,
+    String? album,
+  }) async {
     String? oldTaskId = videoToTaskMapping[videoId];
 
     if (oldTaskId != null) {
-      // 2. Remove the failed task from the downloader's internal database
       await FlutterDownloader.remove(
         taskId: oldTaskId,
         shouldDeleteContent: true,
       );
     }
 
-    // 3. Start the download again using our existing request method
-    await requestDownload(url, videoId, name,fileName);
+    await requestDownload(url, videoId, name, fileName, type: type, artist: artist, album: album);
   }
+
   static Future<void> requestDownload(
     String url,
     int videoId,
     String name,
-    String fileName,
-  ) async {
+    String fileName, {
+    String type = 'video',
+    String? artist,
+    String? album,
+  }) async {
     try {
       Directory? directory;
 
@@ -130,7 +134,7 @@ static Future<void> retryDownload(
         // iOS specific: allows downloading over cellular data
       );
       if (taskId != null) {
-        await DownloadDB.saveTask(videoId, taskId, name, fileName);
+        await DownloadDB.saveTask(videoId, taskId, name, fileName, type: type, artist: artist, album: album);
         print('download task is ${taskId}');
         // CRITICAL: We need this to link the progress back to the UI button
         videoToTaskMapping[videoId] = taskId;

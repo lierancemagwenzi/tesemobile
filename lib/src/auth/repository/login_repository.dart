@@ -10,6 +10,9 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smacredit/src/auth/models/VerifyID.dart';
 import 'package:smacredit/src/auth/models/VerifyOTPModel.dart';
+import 'package:smacredit/src/auth/models/WaitingPeriod.dart';
+import 'package:smacredit/src/auth/models/country_model.dart';
+import 'package:smacredit/src/auth/models/terms_response.dart';
 import 'package:smacredit/src/auth/repository/inteceptor.dart';
 import 'package:smacredit/src/profile/models/account_info.dart';
 
@@ -24,6 +27,40 @@ final http.Client client = RetryClient(
   http.Client(),
   // Or wherever your renewal endpoint is
 );
+
+Future<TermsResponse?> get_terms() async {
+  final String renewUrl =
+      '${GlobalConfiguration().getValue('api_base_url')}/auth/terms-and-conditions?target=client';
+  print('token is ${currentuser.value.token}');
+
+  Map<String, String> headers = {'Content-Type': 'application/json'};
+
+  if (currentuser.value.token != null) {
+    headers[HttpHeaders.authorizationHeader] =
+        'Bearer ${currentuser.value.token}';
+  }
+  try {
+    final response = await client.get(Uri.parse(renewUrl), headers: headers);
+
+    if (response.statusCode == 200) {
+      final jsonResponse = jsonDecode(response.body);
+      print(response.body);
+      final TermsResponse? user = TermsResponse.fromJson(jsonResponse);
+
+      if (user != null) {
+        return user;
+      }
+    }
+    if (kDebugMode) {
+      print('Failed to renew token. User must re-login.');
+    }
+    return null;
+  } catch (e) {
+    print(e);
+
+    return null;
+  }
+}
 
 Future<UserModel?> renew_token(String token) async {
   final String renewUrl =
@@ -57,33 +94,182 @@ Future<UserModel?> renew_token(String token) async {
   return null;
 }
 
-Future<UserModel?> google_sign_in(String token) async {
-  final String renewUrl =
+/// Returns `(user: UserModel, accountNotFound: false)` on success,
+/// `(user: null, accountNotFound: true)` when the server says the account
+/// doesn't exist (HTTP 404), or `(user: null, accountNotFound: false)` for
+/// any other error.
+Future<({UserModel? user, bool accountNotFound})> google_sign_in(
+  String token, {
+  String? firstName,
+  String? lastName,
+  int? countryId,
+}) async {
+  final String url =
       '${GlobalConfiguration().getValue('api_base_url')}/auth/google-sign-in';
-  final response = await client.post(
-    Uri.parse(renewUrl),
-    headers: {
-      // Send the old token for verification/renewal
-      'Content-Type': 'application/json',
-    },
-    body: jsonEncode({"idToken": token}),
-  );
+  try {
+    final response = await client.post(
+      Uri.parse(url),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        "idToken": token,
+        if (firstName != null && firstName.isNotEmpty) "first_name": firstName,
+        if (lastName != null && lastName.isNotEmpty) "last_name": lastName,
+        if (countryId != null) "country_id": countryId,
+      }),
+    );
 
-  if (response.statusCode == 200) {
-    final jsonResponse = jsonDecode(response.body);
-    final UserModel? user = UserModel.fromJson(jsonResponse);
-
-    if (user != null) {
-      TokenService.setToken(user.token ?? '');
-
-      currentuser.value = user; // Update the stored token
-      return user;
+    if (response.statusCode == 200) {
+      final jsonResponse = jsonDecode(response.body);
+      final UserModel? user = UserModel.fromJson(jsonResponse);
+      if (user != null) {
+        TokenService.setToken(user.token ?? '');
+        currentuser.value = user;
+        return (user: user, accountNotFound: false);
+      }
     }
+
+    if (response.statusCode == 404) {
+      if (kDebugMode) print('Google sign-in: account not found');
+      return (user: null, accountNotFound: true);
+    }
+
+    if (kDebugMode) {
+      print('Google sign-in failed (${response.statusCode}): ${response.body}');
+    }
+    return (user: null, accountNotFound: false);
+  } catch (e) {
+    if (kDebugMode) print('Google sign-in error: $e');
+    return (user: null, accountNotFound: false);
   }
-  if (kDebugMode) {
-    print('Failed to renew token. User must re-login.');
+}
+
+Future<UserModel?> google_registration(
+  String idToken, {
+  required String firstName,
+  required String lastName,
+  int? countryId,
+}) async {
+  final String url =
+      '${GlobalConfiguration().getValue('api_base_url')}/auth/google-register';
+  try {
+    final response = await client.post(
+      Uri.parse(url),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        "idToken": idToken,
+        "first_name": firstName,
+        "last_name": lastName,
+        if (countryId != null) "country_id": countryId,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final jsonResponse = jsonDecode(response.body);
+      final UserModel? user = UserModel.fromJson(jsonResponse);
+      if (user != null) {
+        TokenService.setToken(user.token ?? '');
+        currentuser.value = user;
+        return user;
+      }
+    }
+    if (kDebugMode) {
+      print('Google registration failed (${response.statusCode}): ${response.body}');
+    }
+    return null;
+  } catch (e) {
+    if (kDebugMode) print('Google registration error: $e');
+    return null;
   }
-  return null;
+}
+
+/// Returns `(user: UserModel, accountNotFound: false)` on success,
+/// `(user: null, accountNotFound: true)` when the server says the account
+/// doesn't exist (HTTP 404), or `(user: null, accountNotFound: false)` for
+/// any other error.
+Future<({UserModel? user, bool accountNotFound})> apple_sign_in(
+  String identityToken, {
+  String? firstName,
+  String? lastName,
+  int? countryId,
+}) async {
+  final String url =
+      '${GlobalConfiguration().getValue('api_base_url')}/auth/apple-sign-in';
+  try {
+    final response = await client.post(
+      Uri.parse(url),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        "identity_token": identityToken,
+        "platform": "ios",
+        if (firstName != null) "first_name": firstName,
+        if (lastName != null) "last_name": lastName,
+        if (countryId != null) "country_id": countryId,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final jsonResponse = jsonDecode(response.body);
+      final UserModel? user = UserModel.fromJson(jsonResponse);
+      if (user != null) {
+        TokenService.setToken(user.token ?? '');
+        currentuser.value = user;
+        return (user: user, accountNotFound: false);
+      }
+    }
+
+    if (response.statusCode == 404) {
+      if (kDebugMode) print('Apple sign-in: account not found');
+      return (user: null, accountNotFound: true);
+    }
+
+    if (kDebugMode) {
+      print('Apple sign-in failed (${response.statusCode}): ${response.body}');
+    }
+    return (user: null, accountNotFound: false);
+  } catch (e) {
+    if (kDebugMode) print('Apple sign-in error: $e');
+    return (user: null, accountNotFound: false);
+  }
+}
+
+Future<UserModel?> apple_registration(
+  String identityToken, {
+  required String firstName,
+  required String lastName,
+  int? countryId,
+}) async {
+  final String url =
+      '${GlobalConfiguration().getValue('api_base_url')}/auth/apple-register';
+  try {
+    final response = await client.post(
+      Uri.parse(url),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        "identity_token": identityToken,
+        "platform": "ios",
+        "first_name": firstName,
+        "last_name": lastName,
+        if (countryId != null) "country_id": countryId,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final jsonResponse = jsonDecode(response.body);
+      final UserModel? user = UserModel.fromJson(jsonResponse);
+      if (user != null) {
+        TokenService.setToken(user.token ?? '');
+        currentuser.value = user;
+        return user;
+      }
+    }
+    if (kDebugMode) {
+      print('Apple registration failed (${response.statusCode}): ${response.body}');
+    }
+    return null;
+  } catch (e) {
+    if (kDebugMode) print('Apple registration error: $e');
+    return null;
+  }
 }
 
 Future<UserModel?> delete_account(String reason) async {
@@ -490,10 +676,11 @@ Future<SignUpModel?> registerUser(Map map) async {
           headers: {HttpHeaders.contentTypeHeader: 'application/json'},
           body: json.encode(map),
         )
-        .timeout(Duration(seconds: 60));
+        .timeout(Duration(seconds: 460));
 
-    print(response.body);
     if (response.statusCode == 200) {
+      print(response.body);
+
       SignUpModel userModel = SignUpModel.fromJson(json.decode(response.body));
       return userModel;
     } else {
@@ -1290,6 +1477,72 @@ Future<int?> updatenotificationsettings(Map data) async {
   }
 }
 
+Future<List<CountryModel>> get_countries() async {
+  final String url =
+      '${GlobalConfiguration().getValue('api_base_url')}/auth/countries';
+  final client = http.Client();
+  try {
+    final response = await client
+        .get(
+          Uri.parse(url),
+          headers: {HttpHeaders.contentTypeHeader: 'application/json'},
+        )
+        .timeout(const Duration(seconds: 30));
+
+    if (response.statusCode == 200) {
+      final List<dynamic> list = jsonDecode(response.body);
+      return list.map((e) => CountryModel.fromJson(e)).toList();
+    }
+    return [];
+  } on TimeoutException {
+    return [];
+  } on SocketException {
+    return [];
+  } catch (e) {
+    return [];
+  }
+}
+
+Future<WaitingPeriodModel?> check_waiting_period() async {
+  print("#check_waiting_period user");
+  final String url =
+      '${GlobalConfiguration().getValue('api_base_url')}/auth/waiting-period-setting';
+  final client = new http.Client();
+  try {
+    final response = await client
+        .get(
+          Uri.parse(url),
+          headers: {
+            HttpHeaders.contentTypeHeader: 'application/json',
+            'x-access-token': '',
+          },
+        )
+        .timeout(Duration(seconds: 260));
+    ;
+    print(response.body);
+    if (response.statusCode == 200) {
+      WaitingPeriodModel userModel = WaitingPeriodModel.fromJson(
+        json.decode(response.body),
+      );
+      return userModel;
+    } else {
+      return null;
+    }
+  } on TimeoutException catch (e) {
+    print(e.message);
+    return null;
+    print(' Timeout Error: $e');
+  } on SocketException catch (e) {
+    return null;
+    print(' Socket Error: $e');
+  } on Error catch (e) {
+    print("error");
+    print(e.stackTrace);
+    return null;
+    print(' General Error: $e');
+  }
+}
+
 Future<LoginResponseModel?> register(Map body) async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
 
@@ -1298,14 +1551,17 @@ Future<LoginResponseModel?> register(Map body) async {
       '${GlobalConfiguration().getValue('api_base_url')}auth/register';
   final client = new http.Client();
   try {
-    final response = await client.post(
-      Uri.parse(url),
-      headers: {
-        HttpHeaders.contentTypeHeader: 'application/json',
-        'x-access-token': '',
-      },
-      body: json.encode(body),
-    );
+    final response = await client
+        .post(
+          Uri.parse(url),
+          headers: {
+            HttpHeaders.contentTypeHeader: 'application/json',
+            'x-access-token': '',
+          },
+          body: json.encode(body),
+        )
+        .timeout(Duration(seconds: 260));
+    ;
     print(response.body);
     if (response.statusCode == 201) {
       UserModel userModel = UserModel.fromJson(
@@ -1331,4 +1587,36 @@ Future<LoginResponseModel?> register(Map body) async {
     return null;
     print(' General Error: $e');
   }
+}
+
+Future<UserModel?> renewToken(String token) async {
+  final response = await client.post(
+    Uri.parse(
+      '${GlobalConfiguration().getValue('api_base_url')}/auth/renew-token',
+    ),
+    headers: {
+      // Send the old token for verification/renewal
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
+    },
+  );
+
+  if (response.statusCode == 200) {
+    final jsonResponse = jsonDecode(response.body);
+    final UserModel? user = UserModel.fromJson(jsonResponse);
+
+    if (user != null) {
+      TokenService.setToken(user.token ?? '');
+
+      currentuser.value = user; // Update the stored token
+      return user;
+    }
+  }
+
+  // Handle renewal failure (e.g., redirect to login)
+  // TokenStorage.token = null;
+  if (kDebugMode) {
+    print('Failed to renew token. User must re-login.');
+  }
+  return null;
 }

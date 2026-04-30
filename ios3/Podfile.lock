@@ -1198,6 +1198,10 @@ PODS:
     - GoogleUtilities/Environment (~> 8.0)
     - GoogleUtilities/UserDefaults (~> 8.0)
     - PromisesObjC (~> 2.4)
+  - background_downloader (0.0.1):
+    - Flutter
+  - background_transfer (1.2.0):
+    - Flutter
   - better_player_plus (1.1.2):
     - Cache (~> 6.0.0)
     - Flutter
@@ -1609,6 +1613,8 @@ PODS:
     - FlutterMacOS
 
 DEPENDENCIES:
+  - background_downloader (from `.symlinks/plugins/background_downloader/ios`)
+  - background_transfer (from `.symlinks/plugins/background_transfer/ios`)
   - better_player_plus (from `.symlinks/plugins/better_player_plus/ios`)
   - camera_avfoundation (from `.symlinks/plugins/camera_avfoundation/ios`)
   - cloud_firestore (from `.symlinks/plugins/cloud_firestore/ios`)
@@ -1695,6 +1701,10 @@ SPEC REPOS:
     - TOCropViewController
 
 EXTERNAL SOURCES:
+  background_downloader:
+    :path: ".symlinks/plugins/background_downloader/ios"
+  background_transfer:
+    :path: ".symlinks/plugins/background_transfer/ios"
   better_player_plus:
     :path: ".symlinks/plugins/better_player_plus/ios"
   camera_avfoundation:
@@ -1770,6 +1780,8 @@ SPEC CHECKSUMS:
   abseil: a05cc83bf02079535e17169a73c5be5ba47f714b
   AppAuth: 1c1a8afa7e12f2ec3a294d9882dfa5ab7d3cb063
   AppCheckCore: cc8fd0a3a230ddd401f326489c99990b013f0c4f
+  background_downloader: 50e91d979067b82081aba359d7d916b3ba5fadad
+  background_transfer: 38f3997345c6ea56dfe858d437d30798e7ba0937
   better_player_plus: 3d40145c650bb83dde08f0d593b21a144196769f
   BoringSSL-GRPC: dded2a44897e45f28f08ae87a55ee4bcd19bc508
   Cache: 4ca7e00363fca5455f26534e5607634c820ffc2d

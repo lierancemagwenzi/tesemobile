@@ -11,6 +11,7 @@ import 'package:global_configuration/global_configuration.dart';
 import 'package:http/http.dart' as http;
 import 'package:retry/retry.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:smacredit/client/models/cookie_manager.dart';
 import 'package:smacredit/src/auth/repository/inteceptor.dart';
 import 'package:smacredit/src/auth/widgets/models/id_details.dart';
 
@@ -23,6 +24,7 @@ final http.Client client = RetryClient(
 ValueNotifier<UserModel> currentuser = ValueNotifier(UserModel());
 
 ValueNotifier<String> current_registration_email = ValueNotifier('');
+final cloudFrontCookieNotifier = CloudFrontCookieNotifier();
 
 bool isV1=false;
 

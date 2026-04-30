@@ -51,12 +51,24 @@ class PaymentLinkModel {
   final int? paymentPayerCustomerId; // Nullable
   final DateTime createdAt;
 
+  final String? paymentLinkCustomerZimSwitchSkinnedUrl;
+  final String? paymentLinkCustomerEcocashSkinnedUrl;
+  final String? paymentLinkCustomerInnBucksSkinnedUrl;
+  final String? paymentLinkCustomerVisaSkinnedUrl;
+  final String? paymentLinkCustomerMastercardSkinnedUrl;
+  final num? paymentLinkAdditionalFees;
+
   String get title {
     return paymentLinkType.replaceAll('_', ' ').toLowerCase().toTitleCase();
   }
 
   PaymentLinkModel({
     required this.id,
+    this.paymentLinkCustomerZimSwitchSkinnedUrl,
+    this.paymentLinkCustomerEcocashSkinnedUrl,
+    this.paymentLinkCustomerInnBucksSkinnedUrl,
+    this.paymentLinkCustomerVisaSkinnedUrl,
+    this.paymentLinkCustomerMastercardSkinnedUrl,
     required this.paymentProfileName,
     required this.paymentLinkEmail,
     required this.paymentProfileDescription,
@@ -67,6 +79,7 @@ class PaymentLinkModel {
     required this.paymentLinkType,
     required this.paymentLinkToken,
     this.paymentLinkImageUrl,
+    this.paymentLinkAdditionalFees,
     required this.paymentLinkStartDate,
     required this.paymentLinkEndDate,
     required this.paymentLinkIsActive,
@@ -125,8 +138,25 @@ class PaymentLinkModel {
       paymentPayerAddress: json['paymentPayerAddress'] as String?,
       paymentPayerMobile: json['paymentPayerMobile'] as String?,
 
+      paymentLinkAdditionalFees:
+          json['paymentLinkAdditionalFees'] != null &&
+              num.tryParse(json['paymentLinkAdditionalFees'].toString()) != null
+          ? num.tryParse(json['paymentLinkAdditionalFees'].toString())
+          : 0,
+
       // Handle Nullable Int Field
       paymentPayerCustomerId: json['paymentPayerCustomerId'] as int?,
+
+      paymentLinkCustomerZimSwitchSkinnedUrl:
+          json['paymentLinkCustomerZimSwitchSkinnedUrl'] as String?,
+      paymentLinkCustomerEcocashSkinnedUrl:
+          json['paymentLinkCustomerEcocashSkinnedUrl'] as String?,
+      paymentLinkCustomerInnBucksSkinnedUrl:
+          json['paymentLinkCustomerInnBucksSkinnedUrl'] as String?,
+      paymentLinkCustomerVisaSkinnedUrl:
+          json['paymentLinkCustomerVisaSkinnedUrl'] as String?,
+      paymentLinkCustomerMastercardSkinnedUrl:
+          json['paymentLinkCustomerMastercardSkinnedUrl'] as String?,
     );
   }
 

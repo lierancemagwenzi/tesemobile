@@ -4,10 +4,13 @@ import 'package:mvc_pattern/mvc_pattern.dart';
 import 'package:smacredit/client/downloads/widgets/downloads.dart';
 import 'package:smacredit/client/events/events.dart';
 import 'package:smacredit/client/home/home.dart';
+import 'package:smacredit/client/home/music_home.dart';
 import 'package:smacredit/client/libary/library_widget.dart';
 import 'package:smacredit/client/profile/client_pofile.dart';
 import 'package:smacredit/client/search/search_widget.dart';
 import 'package:smacredit/src/theme/app_theme.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+
 // Note: Ensure your local paths for these imports are correct
 // import 'package:smacredit/src/home/controller/client_controller.dart';
 // import 'package:smacredit/src/models/UserModel.dart';
@@ -51,14 +54,14 @@ class _ClientDashboardWidgetState extends StateMVC<ClientDashboardWidget> {
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
         bottomNavigationBar: _buildBottomNav(context, isDark),
-        // floatingActionButton: _buildFab(),
+        floatingActionButton: _buildFab(),
         floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
         body: [
           ClientHomeWidget(),
 
           // DownloadsScreen(),
-          SearchWidget(),
-          // LiveEventsWidget(),
+          MusicHomeWidget(),
+          LiveEventsWidget(),
           MyLibraryWidget(),
           ClientProfileScreen(),
         ][currentIndex],
@@ -81,7 +84,7 @@ class _ClientDashboardWidgetState extends StateMVC<ClientDashboardWidget> {
           children: [
             IconButton(
               icon: Icon(
-                Icons.home,
+                LucideIcons.home,
                 color: currentIndex == 0 ? brandGreen : Colors.grey,
               ),
               onPressed: () {
@@ -90,7 +93,7 @@ class _ClientDashboardWidgetState extends StateMVC<ClientDashboardWidget> {
             ),
             IconButton(
               icon: Icon(
-                Icons.search,
+                LucideIcons.music,
                 color: currentIndex == 1 ? brandGreen : Colors.grey,
               ),
               onPressed: () {
@@ -100,20 +103,20 @@ class _ClientDashboardWidgetState extends StateMVC<ClientDashboardWidget> {
             // const SizedBox(width: 40),
             IconButton(
               icon: Icon(
-                Icons.video_library,
-                color: currentIndex == 2 ? brandGreen : Colors.grey,
-              ),
-              onPressed: () {
-                changeScreen(2);
-              },
-            ),
-            IconButton(
-              icon: Icon(
-                Icons.person,
+                LucideIcons.playSquare,
                 color: currentIndex == 3 ? brandGreen : Colors.grey,
               ),
               onPressed: () {
                 changeScreen(3);
+              },
+            ),
+            IconButton(
+              icon: Icon(
+                LucideIcons.user,
+                color: currentIndex == 4 ? brandGreen : Colors.grey,
+              ),
+              onPressed: () {
+                changeScreen(4);
               },
             ),
           ],

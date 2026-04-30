@@ -1,3 +1,5 @@
+import 'package:smacredit/src/auth/models/country_model.dart';
+
 /// firstName : "John"
 /// lastName : "Doe"
 /// email : "lierance@smatechgroup.com"
@@ -18,6 +20,7 @@ class RegDetailsModel {
     String? phoneNumber,
     String? gender,
     String? nationality,
+    CountryModel? country,
     num? nationalIdentificationTypeID,
     String? nationalIdentificationType,
     String? nationalIdentification,
@@ -33,6 +36,7 @@ class RegDetailsModel {
   }) {
     _firstName = firstName;
     _lastName = lastName;
+    _country=country;
     _email = email;
     _phoneNumber = phoneNumber;
     _gender = gender;
@@ -69,6 +73,7 @@ class RegDetailsModel {
   String? _phoneNumber;
   String? _gender;
   String? _nationality;
+  CountryModel? _country;
   num? _nationalIdentificationTypeID;
   String? _nationalIdentificationType;
   String? _nationalIdentification;
@@ -109,6 +114,7 @@ class RegDetailsModel {
     dob: dob ?? _dob,
   );
   String? get firstName => _firstName;
+    CountryModel? get country => _country;
   String? get lastName => _lastName;
   String? get email => _email;
   String? get phoneNumber => _phoneNumber;

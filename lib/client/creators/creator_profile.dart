@@ -37,6 +37,7 @@ class _CreatorProfileScreenState extends StateMVC<CreatorProfileScreen> {
     super.initState();
 
     _con.listenForCreatorChannels(widget.user.id ?? 0);
+    _con.checkCreatorFollow(widget.user.id!);
   }
 
   @override
@@ -60,7 +61,11 @@ class _CreatorProfileScreenState extends StateMVC<CreatorProfileScreen> {
                 clipBehavior: Clip.none,
                 children: [
                   // Banner Image
-                  _buildNetworkImage("test", height: 200, isDark: isDark),
+                  _buildNetworkImage(
+                    widget.user.banner ?? "",
+                    height: 200,
+                    isDark: isDark,
+                  ),
                   // Overlapping Profile Image
                   Positioned(
                     bottom: -40,
@@ -79,16 +84,80 @@ class _CreatorProfileScreenState extends StateMVC<CreatorProfileScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    widget.user.fullname,
-                    style: TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
-                      color: textColor,
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        widget.user.fullname,
+                        style: TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
+                          color: textColor,
+                        ),
+                      ),
+
+                      if (_con.isFollowingCreator != null)
+                        ElevatedButton(
+                          onPressed: () async {
+                            if (_con.isFollowingCreator == true) {
+                              final bool? resu = await _con.unFollowCreator({
+                                "creator_id": widget.user.id,
+                              });
+                              _con.checkCreatorFollow(widget.user.id ?? 0);
+                              if (resu == true) {
+                                CustomMessageHandler().showSuccessSnakeBar(
+                                  // ignore: use_build_context_synchronously
+                                  context,
+                                  "Unfollowed",
+                                );
+                              } else {
+                                CustomMessageHandler().showErrorSnakeBar(
+                                  // ignore: use_build_context_synchronously
+                                  context,
+                                  "Something went wrong",
+                                );
+                              }
+                            } else {
+                              final bool? resu = await _con.followCreator({
+                                "creator_id": widget.user.id,
+                              });
+                              _con.checkCreatorFollow(widget.user.id ?? 0);
+                              if (resu == true) {
+                                CustomMessageHandler().showSuccessSnakeBar(
+                                  // ignore: use_build_context_synchronously
+                                  context,
+                                  "followed",
+                                );
+                              } else {
+                                CustomMessageHandler().showErrorSnakeBar(
+                                  // ignore: use_build_context_synchronously
+                                  context,
+                                  "Something went wrong",
+                                );
+                              }
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _con.isFollowingCreator == true
+                                ? Colors.red
+                                : Colors.green,
+                            shadowColor: Colors.transparent,
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                          ),
+                          child: Text(
+                            _con.isFollowingCreator == true
+                                ? 'unfollow'
+                                : 'Follow',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                    ],
                   ),
                   Text(
-                    widget.user.email ?? "",
+                    widget.user.description ?? "",
                     style: TextStyle(fontSize: 16, color: subTextColor),
                   ),
                   const SizedBox(height: 20),

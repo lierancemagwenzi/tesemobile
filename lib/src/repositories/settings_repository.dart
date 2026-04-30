@@ -8,14 +8,17 @@ import 'package:global_configuration/global_configuration.dart';
 
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:smacredit/src/auth/models/WaitingPeriod.dart';
 
-import '../helpers/custom_trace.dart';
 import '../models/Setting.dart';
 
 ValueNotifier<Setting> setting = ValueNotifier(Setting());
-
-ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
-
+final RouteObserver<ModalRoute<void>> routeObserver =
+    RouteObserver<ModalRoute<void>>();
+ValueNotifier<String?> currentRouteName = ValueNotifier(null);
+ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.dark);
+ValueNotifier<WaitingPeriodModel?> waiting_period = ValueNotifier(null);
+ValueNotifier<Map<String, double>> uploadProgressMap = ValueNotifier({});
 final navigatorKey = GlobalKey<NavigatorState>();
 
 Future<Setting> initSettings() async {

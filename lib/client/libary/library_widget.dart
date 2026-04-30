@@ -1,9 +1,11 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:mvc_pattern/mvc_pattern.dart';
 import 'package:smacredit/client/channels/empty_widget.dart';
 import 'package:smacredit/client/controller/client_user_controller.dart';
 import 'package:smacredit/src/content-creator/models/channel_model.dart';
+import 'package:smacredit/src/repositories/user_repository.dart';
 import 'package:smacredit/src/utils/xhelper.dart';
 
 // --- DUMMY MODELS ---
@@ -54,6 +56,8 @@ class _MyLibraryWidgetState extends StateMVC<MyLibraryWidget> {
     _con.listenForPurchasedVideos();
     _con.listenForLikedVideos();
     _con.listenForWatchedVideos();
+    _con.listenForPurchasedChannels();
+    _con.listenForPurchasedPlaylists();
   }
 
   // Robust Network Image Helper with Error Placeholders
@@ -74,6 +78,7 @@ class _MyLibraryWidgetState extends StateMVC<MyLibraryWidget> {
                   imageUrl: url,
                   fit: BoxFit.cover,
                   width: width,
+                  httpHeaders: {'Cookie': cloudFrontCookieNotifier.value},
                   height: height,
                   // 1. Placeholder shown while downloading
                   placeholder: (context, url) => Container(
@@ -171,6 +176,53 @@ class _MyLibraryWidgetState extends StateMVC<MyLibraryWidget> {
             ),
             const SizedBox(height: 20),
 
+            const SizedBox(height: 25),
+
+            InkWell(
+              onTap: () {
+                Navigator.pushNamed(context, '/PersonalPlaylists');
+              },
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _sectionHeader(LucideIcons.library, "Your Playlists"),
+                  Icon(Icons.arrow_forward_ios),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 25),
+
+            // SECTION: CONTINUE WATCHING
+            InkWell(
+              onTap: () {
+                Navigator.pushNamed(context, '/LikedChannels');
+              },
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _sectionHeader(Icons.favorite, "Followed Channels"),
+                  Icon(Icons.arrow_forward_ios),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 25),
+
+            // SECTION: CONTINUE WATCHING
+            InkWell(
+              onTap: () {
+                Navigator.pushNamed(context, '/FollowedCreators');
+              },
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _sectionHeader(Icons.favorite, "Followed Creators"),
+                  Icon(Icons.arrow_forward_ios),
+                ],
+              ),
+            ),
+
             // _buildFilterRow(isDark),
             const SizedBox(height: 25),
 
@@ -215,6 +267,25 @@ class _MyLibraryWidgetState extends StateMVC<MyLibraryWidget> {
             const SizedBox(height: 15),
             _buildPurchasedGrid(isDark),
 
+            const SizedBox(height: 15),
+
+            // SECTION: ALL PURCHASED VIDEOS (GRID)
+            const Text(
+              "Channel Subscriptions",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 15),
+            _buildChannelsGrid(isDark),
+
+            const SizedBox(height: 15),
+
+            // SECTION: ALL PURCHASED VIDEOS (GRID)
+            const Text(
+              "Playlists Subscriptions",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 15),
+            _buildPlaylistsGrid(isDark),
             const SizedBox(height: 25),
 
             // SECTION: DOWNLOADED VIDEOS
@@ -398,6 +469,125 @@ class _MyLibraryWidgetState extends StateMVC<MyLibraryWidget> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
+                  ],
+                ),
+              );
+            },
+          );
+  }
+
+  Widget _buildChannelsGrid(bool isDark) {
+    return _con.subscribed_channels.isEmpty
+        ? Padding(padding: const EdgeInsets.all(8.0), child: TeseEmptyWidget())
+        : GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisSpacing: 15,
+              crossAxisSpacing: 15,
+              childAspectRatio: 0.9,
+            ),
+            itemCount: _con.subscribed_channels.length,
+            itemBuilder: (context, index) {
+              return InkWell(
+                onTap: () {
+                  Navigator.pushNamed(
+                    context,
+                    '/CreatorChannelView',
+                    arguments: _con.subscribed_channels[index],
+                  );
+                },
+
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildNetworkImage(
+                      _con.subscribed_channels[index].logoUrl ?? "",
+                      width: double.infinity,
+                      height: 130,
+                      showPlay: false,
+                    ),
+                    const SizedBox(height: 8),
+
+                    Text(
+                      _con.subscribed_channels[index].name ?? "",
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    // Text(
+                    //   UtilsHelper.formatLongDuration(
+                    //     _con.videos[index].durationSeconds ?? 0,
+                    //   ),
+                    //   style: const TextStyle(
+                    //     fontSize: 12,
+                    //     fontWeight: FontWeight.bold,
+                    //   ),
+                    // ),
+                  ],
+                ),
+              );
+            },
+          );
+  }
+
+  Widget _buildPlaylistsGrid(bool isDark) {
+    return _con.subscribed_channels.isEmpty
+        ? Padding(padding: const EdgeInsets.all(8.0), child: TeseEmptyWidget())
+        : GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisSpacing: 15,
+              crossAxisSpacing: 15,
+              childAspectRatio: 0.9,
+            ),
+            itemCount: _con.subscribed_playlists.length,
+            itemBuilder: (context, index) {
+              return InkWell(
+                onTap: () {
+                  Navigator.pushNamed(
+                    context,
+                    '/PlaylistVideos',
+                    arguments: {
+                      'playlist': _con.subscribed_playlists[index],
+                      'channel': _con.channel,
+                    },
+                  );
+                },
+
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildNetworkImage(
+                      _con.subscribed_playlists[index].thumbnailUrl ?? "",
+                      width: double.infinity,
+                      height: 130,
+                      showPlay: false,
+                    ),
+                    const SizedBox(height: 8),
+
+                    Text(
+                      _con.subscribed_playlists[index].title ?? "",
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    // Text(
+                    //   UtilsHelper.formatLongDuration(
+                    //     _con.videos[index].durationSeconds ?? 0,
+                    //   ),
+                    //   style: const TextStyle(
+                    //     fontSize: 12,
+                    //     fontWeight: FontWeight.bold,
+                    //   ),
+                    // ),
                   ],
                 ),
               );

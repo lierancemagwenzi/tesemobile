@@ -220,16 +220,43 @@ class _ClientChannelPlaylistsWidgetState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (_con.channel?.subscriptionEnabled == true)
-          Text(
-            "${_con.channel?.subscriptionCurrency ?? 'USD'} ${(_con.channel?.subscriptionPrice ?? 0).toStringAsFixed(2)}",
-            style: TextStyle(
-              color: Colors
-                  .white, // Note: This might be invisible on light theme now
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            if (_con.channel?.subscriptionEnabled == true)
+              Text(
+                "${_con.channel?.subscriptionCurrency ?? 'USD'} ${(_con.channel?.subscriptionPrice ?? 0).toStringAsFixed(2)}",
+                style: TextStyle(
+                  color: Colors
+                      .white, // Note: This might be invisible on light theme now
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              )
+            else
+              SizedBox(height: 0),
+
+            IconButton(
+              icon: Icon(
+                _con.channel?.liked == true
+                    ? Icons.favorite
+                    : Icons.favorite_outline, // or Icons.info_outline
+                color: Color(0xFF00D285), // Tese Green
+                size: 24,
+              ),
+              tooltip: "Like channel",
+              onPressed: () async {
+                await _con
+                    .likeChannel({
+                      "channel_id": widget.channel.id,
+                    }, _con.channel?.liked == true ? false : true)
+                    .then((_) {
+                      _con.listenForChannel(widget.channel.id);
+                    });
+              },
             ),
-          ),
+          ],
+        ),
         const SizedBox(height: 15),
         Row(
           children: [
@@ -237,6 +264,7 @@ class _ClientChannelPlaylistsWidgetState
               radius: 20,
               backgroundImage: CachedNetworkImageProvider(
                 _con.channel?.logoUrl ?? "",
+                headers: {'Cookie': cloudFrontCookieNotifier.value},
               ),
             ),
             const SizedBox(width: 10),
@@ -461,6 +489,8 @@ class _ClientChannelPlaylistsWidgetState
               imageUrl: url,
               width: width,
               height: height,
+              httpHeaders: {'Cookie': cloudFrontCookieNotifier.value},
+
               fit: BoxFit.cover,
               // 1. Placeholder shown while downloading
               placeholder: (context, url) => Container(
@@ -566,7 +596,7 @@ class _ClientChannelPlaylistsWidgetState
       Map map = {
         "wallet": result.method,
         "amount": video.subscriptionPrice ?? 1,
-        "currency": "USD",
+        "currency": video.subscriptionCurrency,
         "paymentDescription": "Channel  subscription payment",
         "payer": "${currentuser.value.user?.fullname}",
         "user_id": currentuser.value.user?.id,

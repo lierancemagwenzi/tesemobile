@@ -43,13 +43,14 @@ final ThemeData lightTheme = ThemeData(
 
 final ThemeData darkTheme = ThemeData(
   brightness: Brightness.dark,
-   fontFamily: 'Figtree',
+  fontFamily: 'Figtree',
   useMaterial3: false,
-  scaffoldBackgroundColor: const Color(0xFF0D1117), // Deep dark navy/black
+  scaffoldBackgroundColor: Colors.black,
+  // scaffoldBackgroundColor: const Color(0xFF0D1117), // Deep dark navy/black
   primaryColor: brandGreen,
-  cardColor: const Color(0xFF161B22), // Slightly lighter for cards
-  appBarTheme: const AppBarTheme(
-    backgroundColor: Color(0xFF0D1117),
+  cardColor: const Color(0xFF161B22).withValues(alpha: 0.3), // Slightly lighter for cards
+  appBarTheme:  AppBarTheme(
+    backgroundColor: Color(0xFF0D1117).withValues(alpha: 0.3),
     elevation: 0,
   ),
   textTheme: const TextTheme(

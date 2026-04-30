@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class TesePermissions {
   static Future<bool> checkStoragePermission() async {
@@ -25,12 +26,20 @@ class TesePermissions {
   static Future<bool> isAndroid13OrHigher() async {
     // 1. Ensure we are on Android to avoid crashes on other platforms
     if (Platform.isAndroid) {
-      final DeviceInfoPlugin deviceInfoPlugin = DeviceInfoPlugin();
-      final AndroidDeviceInfo androidInfo = await deviceInfoPlugin.androidInfo;
 
-      // 2. Android 13 is SDK level 33
-      // We check if sdkInt is greater than or equal to 33
-      return androidInfo.version.sdkInt >= 33;
+      final osVersion = Platform.operatingSystemVersion.toLowerCase();
+
+      // Look for "android 13", "android 14", or the SDK levels 33, 34+
+      if (osVersion.contains("android 13") || osVersion.contains("android 14")) {
+        return true;
+      }
+
+      // Fallback: Try to parse the SDK level if it appears as "API 33"
+      final apiMatch = RegExp(r'api\s+(\d+)').firstMatch(osVersion);
+      if (apiMatch != null) {
+        int sdk = int.parse(apiMatch.group(1)!);
+        return sdk >= 33;
+      }
     }
 
     return false;
